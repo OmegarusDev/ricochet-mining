@@ -1,7 +1,14 @@
 import { Vector2D } from '../engine/Vector2D.js';
+import { TUNING } from '../sim/Tuning.js';
+
+const CHIP_POOL = [];
 
 export class OreParticle {
   constructor({ pos, vel, value, color, radius = 4 }) {
+    this.reset({ pos, vel, value, color, radius });
+  }
+
+  reset({ pos, vel, value, color, radius = 4 }) {
     this.pos = pos;
     this.vel = vel;
     this.value = value;
@@ -36,33 +43,51 @@ export class OreParticle {
     }
   }
 
-  draw(ctx) {
+  draw(ctx, reduced = false) {
     if (this.collected) {
       return;
     }
-    const pulseR = Math.max(0.5, this.radius * (1 + 0.18 * Math.sin(this.pulse)));
     if (!Number.isFinite(this.pos.x) || !Number.isFinite(this.pos.y)) {
       return;
     }
-    const glowR = pulseR * 2.4;
-    const gradient = ctx.createRadialGradient(
-      this.pos.x,
-      this.pos.y,
-      0,
-      this.pos.x,
-      this.pos.y,
-      glowR
-    );
-    gradient.addColorStop(0, this.color);
-    gradient.addColorStop(1, 'rgba(15, 23, 42, 0)');
-    ctx.fillStyle = gradient;
+    const pulseR = Math.max(0.5, this.radius * (reduced ? 1 : 1 + 0.16 * Math.sin(this.pulse)));
+    const dim = this.isMagnetized ? 1 : 0.78;
+    ctx.save();
+    ctx.globalAlpha = dim;
+    ctx.translate(this.pos.x, this.pos.y);
+    ctx.rotate(this.pulse * 0.35);
     ctx.beginPath();
-    ctx.arc(this.pos.x, this.pos.y, glowR, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
+    ctx.moveTo(0, -pulseR * 1.35);
+    ctx.lineTo(pulseR, 0);
+    ctx.lineTo(0, pulseR * 1.35);
+    ctx.lineTo(-pulseR, 0);
+    ctx.closePath();
     ctx.fillStyle = this.color;
-    ctx.arc(this.pos.x, this.pos.y, pulseR, 0, Math.PI * 2);
     ctx.fill();
+    ctx.fillStyle = 'rgba(248, 250, 252, 0.45)';
+    ctx.beginPath();
+    ctx.moveTo(-pulseR * 0.15, -pulseR * 0.7);
+    ctx.lineTo(pulseR * 0.2, -pulseR * 0.15);
+    ctx.lineTo(-pulseR * 0.05, pulseR * 0.05);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+export function acquireOre(opts) {
+  const chip = CHIP_POOL.pop();
+  if (chip) {
+    chip.reset(opts);
+    return chip;
+  }
+  return new OreParticle(opts);
+}
+
+export function releaseOre(chip) {
+  if (CHIP_POOL.length < TUNING.particleCap) {
+    chip.collected = true;
+    CHIP_POOL.push(chip);
   }
 }
 
@@ -77,7 +102,7 @@ export function spawnOreBurst(asteroid, normal, oreValueMult, sectorMult, yieldM
     const side = Math.random() * 100 - 50;
     const vel = normal.copy().mult(speed).add(perp.copy().mult(side));
     particles.push(
-      new OreParticle({
+      acquireOre({
         pos: impact.copy(),
         vel,
         value,
@@ -90,7 +115,7 @@ export function spawnOreBurst(asteroid, normal, oreValueMult, sectorMult, yieldM
 
 export function spawnTapChip(pos, asteroid, value) {
   const jitter = new Vector2D(Math.random() * 40 - 20, Math.random() * 40 - 20);
-  return new OreParticle({
+  return acquireOre({
     pos: pos.copy(),
     vel: jitter,
     value,
@@ -100,7 +125,7 @@ export function spawnTapChip(pos, asteroid, value) {
 }
 
 export function spawnSalvageChip(pos, value) {
-  return new OreParticle({
+  return acquireOre({
     pos: pos.copy(),
     vel: new Vector2D(Math.random() * 70 - 35, Math.random() * 40 - 70),
     value,

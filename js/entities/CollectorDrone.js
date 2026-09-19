@@ -208,9 +208,17 @@ export class CollectorDrone {
     ctx.closePath();
     ctx.fillStyle = this.full ? '#f97316' : '#fbbf24';
     ctx.fill();
+    ctx.beginPath();
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.45)';
+    ctx.arc(-this.radius * 0.08, 0, this.radius * 0.22, 0, Math.PI * 2);
+    ctx.fill();
     ctx.strokeStyle = '#f59e0b';
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = 1.8;
     ctx.stroke();
+    ctx.beginPath();
+    ctx.fillStyle = 'rgba(253, 230, 138, 0.55)';
+    ctx.arc(-this.radius * 0.08, 0, this.radius * 0.18, 0, Math.PI * 2);
+    ctx.fill();
     ctx.restore();
 
     const pips = Math.min(this.capacity, 8);

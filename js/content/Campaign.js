@@ -2,22 +2,22 @@ export const TUTORIAL_STEPS = [
   {
     id: 'tap',
     title: 'Shatter a rock',
-    body: 'Tap until the rock cracks apart. Ore only drops on the shatter — not on every tap.'
+    body: 'Tap until it splits.'
   },
   {
     id: 'haul',
     title: 'Get paid',
-    body: 'Chips do nothing in the field. The gold hauler must dump them on the REFINERY pad.'
+    body: 'Gold haulers dump at the REFINERY pad.'
   },
   {
     id: 'upgrade',
     title: 'Buy a pick',
-    body: 'Open Tap and buy Rock Pick. Chip Harvest is later — a chance to leak ore as a rock takes damage.'
+    body: 'The sheet has your next buy.'
   },
   {
     id: 'probe',
-    title: 'Spend a probe',
-    body: 'Launch Probe is a purchase. Bank a wall — the bird glows gold — then hit. Probe crits are a separate Fleet tree.'
+    title: 'Launch a bird',
+    body: 'Walls charge it. Rocks trade hull.'
   }
 ];
 
@@ -119,7 +119,7 @@ export const EVENT_DEFS = [
   {
     id: 'dense',
     name: 'Dense belt',
-    blurb: 'More asteroids than the claim can legally hold.',
+    blurb: 'Rocks drift in faster. Cap stays 25.',
     duration: 32,
     color: '#a855f7'
   },

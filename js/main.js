@@ -1,7 +1,7 @@
 import { StorageManager } from './engine/StorageManager.js';
 import { SoundEngine } from './audio/SoundEngine.js';
-import { GameEngine } from './engine/GameEngine.js';
-import { UIManager } from './ui/UIManager.js';
+import { GameEngine } from './world/Engine.js';
+import { Shell } from './ui/Shell.js';
 
 function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) {
@@ -33,8 +33,7 @@ function boot() {
 
   const canvas = document.getElementById('game-canvas');
   const engine = new GameEngine({ canvas, state, sound });
-  const ui = new UIManager(engine);
-  globalThis.__rmc = { engine, ui };
+  const ui = new Shell(engine);
 
   if (offline) {
     ui.showOffline(offline);

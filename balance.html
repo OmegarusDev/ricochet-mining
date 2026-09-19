@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Yardstick — Ricochet Mining Co.</title>
+  <style>
+    :root {
+      --bg: #0b1220;
+      --panel: #152033;
+      --line: #2a3b55;
+      --text: #e8eef7;
+      --muted: #8ea0b8;
+      --gold: #f5b942;
+      --cyan: #4ec3f0;
+      --green: #34d399;
+      --red: #f87171;
+      font-family: ui-sans-serif, system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: radial-gradient(1200px 600px at 20% -10%, #1b2c48, var(--bg));
+      color: var(--text);
+      padding: 24px;
+    }
+    h1 { margin: 0 0 6px; font-size: 1.15rem; letter-spacing: 0.08em; text-transform: uppercase; }
+    .sub { color: var(--muted); margin: 0 0 22px; max-width: 72ch; line-height: 1.45; font-size: 0.92rem; }
+    a { color: var(--cyan); }
+    .grid { display: grid; gap: 16px; grid-template-columns: 1.1fr 1fr; }
+    @media (max-width: 960px) { .grid { grid-template-columns: 1fr; } }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px;
+    }
+    h2 { margin: 0 0 12px; font-size: 0.78rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--cyan); }
+    table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 0.82rem; }
+    th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+    th { color: var(--muted); font-weight: 650; }
+    .knobs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; }
+    label { display: flex; flex-direction: column; gap: 4px; font-size: 0.72rem; color: var(--muted); }
+    input { background: #0b1220; color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 7px 8px; font: inherit; }
+    button {
+      border: 1px solid var(--gold);
+      background: #8a5a12;
+      color: var(--text);
+      font: inherit;
+      font-weight: 700;
+      padding: 9px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #0b1220; border: 1px solid var(--line); font-size: 0.72rem; }
+    .pill.haul { color: var(--gold); }
+    .pill.spawn { color: var(--red); }
+    .pill.shatter { color: var(--green); }
+    pre { white-space: pre-wrap; font-size: 0.72rem; color: var(--muted); margin: 10px 0 0; }
+    .bar { height: 8px; background: #0b1220; border-radius: 99px; overflow: hidden; }
+    .bar > span { display: block; height: 100%; background: var(--cyan); }
+  </style>
+</head>
+<body>
+  <h1>Company yardstick</h1>
+  <p class="sub">
+    Same formulas the game uses. Edit knobs, run the greedy buyer, and you will know hour 1 vs hour 200
+    without tapping a rock. Paste the dumped object back into <code>js/sim/Tuning.js</code> when it feels right.
+    Back to the <a href="./index.html">claim</a>.
+  </p>
+  <div class="grid">
+    <section class="card">
+      <h2>Knobs</h2>
+      <div class="knobs" id="knobs"></div>
+      <div class="row">
+        <button id="run" type="button">Run 50h greedy</button>
+        <button id="run200" type="button">Run 200h greedy</button>
+        <button id="copy" type="button">Copy TUNING</button>
+      </div>
+      <pre id="dump"></pre>
+    </section>
+    <section class="card">
+      <h2>Now (sector 1, no upgrades)</h2>
+      <div id="now"></div>
+      <h2 style="margin-top:18px">Cost to max a tree</h2>
+      <div id="costs"></div>
+    </section>
+  </div>
+  <section class="card" style="margin-top:16px">
+    <h2>Greedy active play — expand when able</h2>
+    <div id="log"></div>
+  </section>
+  <script type="module">
+    import { TUNING } from './js/sim/Tuning.js';
+    import { catalogCosts, simulateGreedy, snapshot } from './js/sim/Economy.js';
+    import { applyTuningToUpgrades, zeroUpgrades } from './js/ui/Upgrades.js';
+
+    const knobs = [
+      ['fieldCap', 'Field cap'],
+      ['startRocks', 'Start rocks'],
+      ['spawnStart', 'Spawn start (s)'],
+      ['spawnFloor', 'Spawn floor (s)'],
+      ['spawnPerLevel', 'Spawn −s / lv'],
+      ['hpIncomeExponent', 'HP vs income exp'],
+      ['tapIntervalStart', 'Tap interval start'],
+      ['tapIntervalFloor', 'Tap interval floor'],
+      ['tapDamageBase', 'Tap dmg base'],
+      ['tapDamageGrowth', 'Tap dmg growth'],
+      ['probeCap', 'Probe cap'],
+      ['probeSpeedStart', 'Probe speed start'],
+      ['haulerSpeedStart', 'Hauler speed start'],
+      ['densityScale', 'Density cost scale'],
+      ['spawnScale', 'Spawn cost scale']
+    ];
+
+    const box = document.getElementById('knobs');
+    for (const [key, label] of knobs) {
+      const el = document.createElement('label');
+      el.innerHTML = `${label}<input data-key="${key}" type="number" step="any" value="${TUNING[key]}" />`;
+      box.appendChild(el);
+    }
+
+    function readKnobs() {
+      for (const input of box.querySelectorAll('input')) {
+        const n = Number(input.value);
+        if (Number.isFinite(n)) TUNING[input.dataset.key] = n;
+      }
+      applyTuningToUpgrades();
+    }
+
+    function fmt(n) {
+      if (!Number.isFinite(n)) return '∞';
+      if (Math.abs(n) >= 1e6) return `${(n / 1e6).toFixed(2)}M`;
+      if (Math.abs(n) >= 1000) return `${(n / 1000).toFixed(1)}k`;
+      return n.toFixed(n >= 10 ? 1 : 2);
+    }
+
+    function renderNow() {
+      const snap = snapshot(zeroUpgrades(), 1, null, { tapping: true, probes: 0 });
+      document.getElementById('now').innerHTML = `
+        <p>Tap interval <strong>${snap.tapInterval.toFixed(2)}s</strong> · rocks <strong>${snap.maxAsteroids}</strong> · spawn <strong>${snap.spawnDelay.toFixed(2)}s</strong></p>
+        <p>Tap DPS ${fmt(snap.tapDps)} · TTK ${fmt(snap.ttk)}s · ore/s ${fmt(snap.orePerSec)} · bottleneck <span class="pill ${snap.bottleneck}">${snap.bottleneck}</span></p>
+        <p>Mean rock HP ${fmt(snap.belt.hp)} · chip $${fmt(snap.belt.value)} · haul cap ${fmt(snap.haulCap)}/s</p>
+        <div class="bar"><span style="width:${Math.round(Math.min(1, snap.fill) * 100)}%"></span></div>
+      `;
+      const costs = catalogCosts();
+      document.getElementById('costs').innerHTML = Object.entries(costs.byTab)
+        .map(([tab, sum]) => `<div>${tab}: <strong>$${fmt(sum)}</strong> to buy every upgrade</div>`)
+        .join('');
+    }
+
+    function renderLog(result) {
+      const rows = result.log.map((row) => `
+        <tr>
+          <td>${row.label}</td>
+          <td>S${row.sector}</td>
+          <td>$${fmt(row.credits)}</td>
+          <td>${fmt(row.orePerSec)}/s</td>
+          <td>${row.rocks}</td>
+          <td>${row.spawn.toFixed(2)}s</td>
+          <td>${fmt(row.ttk)}s</td>
+          <td><span class="pill ${row.bottleneck}">${row.bottleneck}</span></td>
+        </tr>`).join('');
+      document.getElementById('log').innerHTML = `
+        <table>
+          <thead><tr><th>T</th><th>Sec</th><th>Cash</th><th>Ore/s</th><th>Rocks</th><th>Spawn</th><th>TTK</th><th>Gate</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+        <p class="sub">Ended S${result.sectorLevel} with lifetime $${fmt(result.harvested)}.</p>
+      `;
+    }
+
+    function dumpTuning() {
+      document.getElementById('dump').textContent = JSON.stringify(TUNING, null, 2);
+    }
+
+    document.getElementById('run').onclick = () => {
+      readKnobs();
+      renderNow();
+      renderLog(simulateGreedy({ hours: 50, tapping: true, expand: true }));
+      dumpTuning();
+    };
+    document.getElementById('run200').onclick = () => {
+      readKnobs();
+      renderNow();
+      renderLog(simulateGreedy({ hours: 200, tapping: true, expand: true }));
+      dumpTuning();
+    };
+    document.getElementById('copy').onclick = async () => {
+      readKnobs();
+      dumpTuning();
+      await navigator.clipboard.writeText(JSON.stringify(TUNING, null, 2));
+    };
+
+    renderNow();
+    dumpTuning();
+    renderLog(simulateGreedy({ hours: 12, tapping: true, expand: true }));
+  </script>
+</body>
+</html>

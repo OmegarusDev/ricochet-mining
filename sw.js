@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ricochet-v11';
+const CACHE_NAME = 'ricochet-v18';
 
 const PRECACHE_URLS = [
   './',
@@ -10,13 +10,18 @@ const PRECACHE_URLS = [
   './js/engine/GameEngine.js',
   './js/engine/Vector2D.js',
   './js/engine/StorageManager.js',
+  './js/world/Engine.js',
+  './js/view/Renderer.js',
   './js/entities/Asteroid.js',
   './js/entities/MiningDrone.js',
   './js/entities/CollectorDrone.js',
   './js/entities/OreParticle.js',
   './js/ui/UIManager.js',
+  './js/ui/Shell.js',
   './js/ui/Upgrades.js',
-  './js/content/Campaign.js'
+  './js/content/Campaign.js',
+  './js/sim/Tuning.js',
+  './js/sim/Economy.js'
 ];
 
 function emptyFallback() {

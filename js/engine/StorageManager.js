@@ -35,7 +35,8 @@ export function defaultState() {
     },
     flags: {
       tapped: false,
-      tutorialStep: 0
+      tutorialStep: 0,
+      seenBank: false
     },
     jobs: emptyJobs(),
     milestones: []
@@ -71,7 +72,8 @@ export function applyOfflineGains(state) {
   }
   const dtSim = Math.min(elapsed, 28800);
   const stats = derivedStats(state.upgrades, state.sectorLevel);
-  const breakPart = (1 / stats.tapInterval) * (stats.tapDamage / 90) * 0.28;
+  const hp = Math.max(1, stats.hpMult || 1);
+  const breakPart = (1 / stats.tapInterval) * (stats.tapDamage / (90 * hp)) * 0.28;
   const flakePart =
     stats.chipLeakChance > 0
       ? (1 / stats.tapInterval) * stats.chipLeakChance * 0.22 * stats.tapChipCount * stats.tapChipMult

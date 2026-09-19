@@ -1,3 +1,17 @@
+import {
+  TUNING,
+  fieldRocks,
+  spawnDelay,
+  hpMult as sectorHpMult,
+  tapDamage as tapDamageAt,
+  tapInterval as tapIntervalAt,
+  probeDamage as probeDamageAt,
+  probeSpeed as probeSpeedAt,
+  probeSlots,
+  haulerSpeed as haulerSpeedAt,
+  launchFee
+} from '../sim/Tuning.js';
+
 function u(def) {
   return {
     maxLevel: 25,
@@ -10,23 +24,23 @@ function u(def) {
 }
 
 export const TAB_META = [
-  { id: 'tap', label: 'Tap' },
-  { id: 'fleet', label: 'Fleet' },
+  { id: 'tap', label: 'Mine' },
+  { id: 'fleet', label: 'Launch' },
   { id: 'haul', label: 'Haul' },
-  { id: 'sector', label: 'Sector' }
+  { id: 'sector', label: 'Claim' }
 ];
 
 export const GROUP_BLURBS = {
   'Manual Rig': 'Crack rocks with the pick. Ore drops on shatter. Chip Harvest can leak chips as they split.',
   Specialist: 'Precision toys. Crits, splash, and rhythm once the pick is worth swinging.',
   Overdrive: 'Late tap kits. Locked until the basic rig is actually upgraded.',
-  Probes: 'Kinetic birds. They do not come back. Budget every launch.',
+  Probes: 'Kinetic birds. Walls are free. Rocks trade hull for damage.',
   Automation: 'Mid-game dispatch. Auto-launch still pays the launch fee.',
   Ballistics: 'Separate from the pick. Crits and banked wall shots are how a cheap bird punches up.',
   Ordnance: 'Guidance, chains, and twin rails for a real fleet.',
   Crew: 'Haulers you own. Buy more bays, then they keep working the pad.',
   Bay: 'Cargo, pumps, and the dump circle at the bottom of the claim.',
-  Field: 'How mean the belt is — spawn rate, shatter yield, and rare rocks.',
+  Field: 'Starts with two rocks. Claim Density goes to 25. Drift Frequency is how fast the empty holes refill.',
   Logistics: 'Return burns, compression, and pad magnetism.',
   'Company Charter': 'Survives expansion. Buy these before you warp.'
 };
@@ -40,8 +54,8 @@ export const UPGRADE_DEFS = [
     baseCost: 8,
     scale: 1.24,
     maxLevel: 80,
-    effect: (level) => Math.floor(7 * Math.pow(1.21, level)),
-    describe: (level) => `Tap damage: ${Math.floor(7 * Math.pow(1.21, level))}`
+    effect: (level) => tapDamageAt(level),
+    describe: (level) => `Tap damage: ${tapDamageAt(level)}`
   }),
   u({
     id: 'tap_rate',
@@ -50,9 +64,9 @@ export const UPGRADE_DEFS = [
     group: 'Manual Rig',
     baseCost: 14,
     scale: 1.3,
-    maxLevel: 26,
-    effect: (level) => Math.max(0.15, 1.62 - level * 0.054),
-    describe: (level) => `Tap interval: ${Math.max(0.15, 1.62 - level * 0.054).toFixed(2)} s`
+    maxLevel: 30,
+    effect: (level) => tapIntervalAt(level),
+    describe: (level) => `Tap interval: ${tapIntervalAt(level).toFixed(2)} s`
   }),
   u({
     id: 'tap_radius',
@@ -188,11 +202,11 @@ export const UPGRADE_DEFS = [
     name: 'Max Probe Fleet',
     tab: 'fleet',
     group: 'Probes',
-    baseCost: 36,
-    scale: 1.82,
-    maxLevel: 20,
-    effect: (level) => 1 + level,
-    describe: (level) => `Max probes: ${1 + level}`
+    baseCost: 48,
+    scale: 1.88,
+    maxLevel: TUNING.probeCap - 1,
+    effect: (level) => probeSlots(level),
+    describe: (level) => `Max probes: ${probeSlots(level)}`
   }),
   u({
     id: 'drone_damage',
@@ -202,8 +216,8 @@ export const UPGRADE_DEFS = [
     baseCost: 18,
     scale: 1.23,
     maxLevel: 80,
-    effect: (level) => Math.floor(4 * Math.pow(1.23, level)),
-    describe: (level) => `Probe damage: ${Math.floor(4 * Math.pow(1.23, level))}`
+    effect: (level) => probeDamageAt(level),
+    describe: (level) => `Probe damage: ${probeDamageAt(level)}`
   }),
   u({
     id: 'drone_hull',
@@ -224,8 +238,8 @@ export const UPGRADE_DEFS = [
     baseCost: 24,
     scale: 1.2,
     maxLevel: 32,
-    effect: (level) => 46 + level * 15,
-    describe: (level) => `Speed: ${46 + level * 15} px/s`
+    effect: (level) => probeSpeedAt(level),
+    describe: (level) => `Speed: ${probeSpeedAt(level)} px/s`
   }),
   u({
     id: 'launch_discount',
@@ -246,8 +260,11 @@ export const UPGRADE_DEFS = [
     baseCost: 32,
     scale: 1.33,
     maxLevel: 16,
-    effect: (level) => Math.max(0.04, 0.17 - level * 0.0075),
-    describe: (level) => `Recoil: ${(Math.max(0.04, 0.17 - level * 0.0075) * 100).toFixed(1)}% HP/hit`
+    effect: (level) => Math.max(0.28, 1 - level * 0.045),
+    describe: (level) =>
+      level <= 0
+        ? '1:1 ram — you pay the full trade until dampers'
+        : `You pay ${(Math.max(0.28, 1 - level * 0.045) * 100).toFixed(0)}% of each ram`
   }),
   u({
     id: 'bounce_damp',
@@ -258,7 +275,7 @@ export const UPGRADE_DEFS = [
     scale: 1.31,
     maxLevel: 14,
     effect: (level) => Math.min(0.995, 0.92 + level * 0.0055),
-    describe: (level) => `Wall conserve: ${(Math.min(0.995, 0.92 + level * 0.0055) * 100).toFixed(1)}%`
+    describe: (level) => `Walls keep ${(Math.min(0.995, 0.92 + level * 0.0055) * 100).toFixed(1)}% speed — not a shield`
   }),
   u({
     id: 'probe_crit',
@@ -421,8 +438,8 @@ export const UPGRADE_DEFS = [
     baseCost: 30,
     scale: 1.22,
     maxLevel: 30,
-    effect: (level) => 22 + level * 14,
-    describe: (level) => `Speed: ${22 + level * 14} px/s`
+    effect: (level) => haulerSpeedAt(level),
+    describe: (level) => `Speed: ${haulerSpeedAt(level)} px/s`
   }),
   u({
     id: 'collector_magnet',
@@ -529,25 +546,25 @@ export const UPGRADE_DEFS = [
   }),
   u({
     id: 'asteroid_max',
-    name: 'Sector Asteroids',
+    name: 'Claim Density',
     tab: 'haul',
     group: 'Field',
-    baseCost: 30,
-    scale: 1.35,
-    maxLevel: 16,
-    effect: (level) => 3 + level,
-    describe: (level) => `Max rocks: ${3 + level}`
+    baseCost: TUNING.densityBaseCost,
+    scale: TUNING.densityScale,
+    maxLevel: TUNING.fieldCap - TUNING.startRocks,
+    effect: (level) => fieldRocks(level),
+    describe: (level) => `Max rocks: ${fieldRocks(level)} / ${TUNING.fieldCap}`
   }),
   u({
     id: 'asteroid_spawn_rate',
-    name: 'Warp Beacon',
+    name: 'Drift Frequency',
     tab: 'haul',
     group: 'Field',
-    baseCost: 38,
-    scale: 1.3,
-    maxLevel: 20,
-    effect: (level) => Math.max(0.18, 3.7 - level * 0.16),
-    describe: (level) => `Spawn delay: ${Math.max(0.18, 3.7 - level * 0.16).toFixed(2)} s`
+    baseCost: TUNING.spawnBaseCost,
+    scale: TUNING.spawnScale,
+    maxLevel: TUNING.spawnMaxLevel,
+    effect: (level) => spawnDelay(level),
+    describe: (level) => `Spawn delay: ${spawnDelay(level).toFixed(2)} s`
   }),
   u({
     id: 'ore_value_mult',
@@ -1023,11 +1040,10 @@ export function derivedStats(upgrades, sectorLevel, event = null) {
   const lv = (id) => upgrades[id] || 0;
   const autoLevel = lv('auto_launch');
   const discount = UPGRADE_BY_ID.launch_discount.effect(lv('launch_discount'));
-  const rawLaunch = 12 + lv('drone_max_count') * 6;
   const eventId = event && event.ttl > 0 ? event.id : null;
   const oreEvent = eventId === 'gold_rush' ? 2.15 : eventId === 'quiet' ? 1.45 : 1;
-  const spawnEvent = eventId === 'meteor' ? 0.34 : eventId === 'quiet' ? 1.55 : 1;
-  const rockEvent = eventId === 'dense' ? 4 : 0;
+  const spawnEvent =
+    eventId === 'meteor' ? 0.42 : eventId === 'dense' ? 0.55 : eventId === 'quiet' ? 1.55 : 1;
   const chipEvent = eventId === 'aftershock' ? 1.85 : 1;
   const returnEvent = eventId === 'tailwind' ? 1.35 : 1;
   const bounceEvent = eventId === 'cushion' ? 0.035 : 0;
@@ -1045,7 +1061,7 @@ export function derivedStats(upgrades, sectorLevel, event = null) {
     droneSpeed:
       UPGRADE_BY_ID.drone_speed.effect(lv('drone_speed')) +
       UPGRADE_BY_ID.veteran_engines.effect(lv('veteran_engines')),
-    launchCost: Math.max(5, Math.floor(rawLaunch * (1 - discount))),
+    launchCost: launchFee(lv('drone_max_count'), discount),
     autoLaunchEnabled: autoLevel > 0,
     autoDeployInterval: UPGRADE_BY_ID.auto_launch.effect(autoLevel),
     recoilFrac: UPGRADE_BY_ID.drone_recoil.effect(lv('drone_recoil')),
@@ -1085,8 +1101,14 @@ export function derivedStats(upgrades, sectorLevel, event = null) {
     overchargeEvery: UPGRADE_BY_ID.tap_overcharge.effect(lv('tap_overcharge')),
     splashRadius: UPGRADE_BY_ID.tap_pierce.effect(lv('tap_pierce')),
     multiHit: UPGRADE_BY_ID.tap_multihit.effect(lv('tap_multihit')),
-    maxAsteroids: UPGRADE_BY_ID.asteroid_max.effect(lv('asteroid_max')) + rockEvent,
-    asteroidSpawnDelay: UPGRADE_BY_ID.asteroid_spawn_rate.effect(lv('asteroid_spawn_rate')) * spawnEvent,
+    maxAsteroids: Math.min(
+      TUNING.fieldCap,
+      UPGRADE_BY_ID.asteroid_max.effect(lv('asteroid_max'))
+    ),
+    asteroidSpawnDelay: Math.max(
+      0.16,
+      UPGRADE_BY_ID.asteroid_spawn_rate.effect(lv('asteroid_spawn_rate')) * spawnEvent
+    ),
     oreValueMult:
       UPGRADE_BY_ID.ore_value_mult.effect(lv('ore_value_mult')) *
       UPGRADE_BY_ID.charter_yield.effect(lv('charter_yield')) *
@@ -1115,6 +1137,7 @@ export function derivedStats(upgrades, sectorLevel, event = null) {
     unlockCut: UPGRADE_BY_ID.expansion_scout.effect(lv('expansion_scout')),
     offlineEff: UPGRADE_BY_ID.offline_ops.effect(lv('offline_ops')),
     sectorMult: sector.incomeMult,
+    hpMult: sectorHpMult(sector.incomeMult),
     width: sector.width,
     height: sector.height,
     sector,
@@ -1148,6 +1171,21 @@ export function groupedUpgrades(tab) {
   return groups;
 }
 
+export function applyTuningToUpgrades() {
+  const density = UPGRADE_BY_ID.asteroid_max;
+  density.baseCost = TUNING.densityBaseCost;
+  density.scale = TUNING.densityScale;
+  density.maxLevel = Math.max(1, TUNING.fieldCap - TUNING.startRocks);
+  const spawn = UPGRADE_BY_ID.asteroid_spawn_rate;
+  spawn.baseCost = TUNING.spawnBaseCost;
+  spawn.scale = TUNING.spawnScale;
+  spawn.maxLevel = TUNING.spawnMaxLevel;
+  const fleet = UPGRADE_BY_ID.drone_max_count;
+  fleet.maxLevel = Math.max(1, TUNING.probeCap - 1);
+}
+
 export function sectorUnlockNeed(sector, stats) {
   return Math.floor(sector.unlock * (1 - (stats?.unlockCut || 0)));
 }
+
+applyTuningToUpgrades();

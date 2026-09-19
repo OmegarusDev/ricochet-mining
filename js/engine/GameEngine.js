@@ -11,7 +11,9 @@ import {
 import { Asteroid } from '../entities/Asteroid.js';
 import { launchMiningDrone } from '../entities/MiningDrone.js';
 import { CollectorDrone } from '../entities/CollectorDrone.js';
-import { spawnOreBurst, spawnSalvageChip, spawnTapChip } from '../entities/OreParticle.js';
+import { spawnOreBurst, spawnSalvageChip, spawnTapChip, releaseOre } from '../entities/OreParticle.js';
+import { TUNING } from '../sim/Tuning.js';
+import { Renderer } from '../view/Renderer.js';
 import {
   MILESTONES,
   TUTORIAL_STEPS,
@@ -36,6 +38,10 @@ export class GameEngine {
     this.sparks = [];
     this.toasts = [];
     this.stars = [];
+    this._sparkPool = [];
+    this._floatPool = [];
+    this.wealthSamples = [];
+    this.renderer = new Renderer(this);
     this.depotPulse = 0;
     this.nextCollectorId = 1;
     this.autoDeployTimer = 1.5;
@@ -46,6 +52,7 @@ export class GameEngine {
     this.creditsPerSec = 0;
     this.dirty = true;
     this.elapsed = 0;
+    this.view = { scale: 1, ox: 0, oy: 0, cssW: 1, cssH: 1, cx: null, cy: null };
     this.combo = 0;
     this.comboId = null;
     this.comboTimer = 0;
@@ -62,6 +69,10 @@ export class GameEngine {
     this._syncCollectors();
     this._fillAsteroids();
     this._checkMilestones(true);
+  }
+
+  fieldCap() {
+    return Math.min(TUNING.fieldCap, this.stats.maxAsteroids);
   }
 
   depot() {
@@ -83,7 +94,12 @@ export class GameEngine {
 
   refreshStats() {
     this.stats = derivedStats(this.state.upgrades, this.state.sectorLevel, this.event);
-    this.playfield = { width: this.stats.width, height: this.stats.height };
+    const nextW = this.stats.width;
+    const nextH = this.stats.height;
+    if (!this.playfield || this.playfield.width !== nextW || this.playfield.height !== nextH) {
+      this.playfield = { width: nextW, height: nextH };
+      this.fitNeeded = true;
+    }
     for (const drone of this.drones) {
       drone.applyStats({
         damage: this.stats.droneDamage,
@@ -100,31 +116,140 @@ export class GameEngine {
       });
     }
     this._syncCollectors();
+    if (this.renderer) {
+      this.renderer.invalidate();
+    }
   }
 
-  resizeCanvas(displayWidth, displayHeight) {
+  resizeCanvas(displayWidth, displayHeight, { reset = false } = {}) {
+    this.playfield = { width: this.stats.width, height: this.stats.height };
     const dpr = window.devicePixelRatio || 1;
-    const logicalWidth = this.playfield.width;
-    const logicalHeight = this.playfield.height;
-    const nextW = Math.max(1, Math.round(logicalWidth * dpr));
-    const nextH = Math.max(1, Math.round(logicalHeight * dpr));
+    const nextW = Math.max(1, Math.round(displayWidth * dpr));
+    const nextH = Math.max(1, Math.round(displayHeight * dpr));
     if (this.canvas.width !== nextW || this.canvas.height !== nextH) {
       this.canvas.width = nextW;
       this.canvas.height = nextH;
+      for (const asteroid of this.asteroids) {
+        asteroid._fill = null;
+        asteroid._fillCtx = null;
+      }
+      if (this.renderer) {
+        this.renderer.invalidate();
+      }
     }
-    const scale = Math.min(displayWidth / logicalWidth, displayHeight / logicalHeight);
-    this.canvas.style.width = `${Math.max(1, logicalWidth * scale)}px`;
-    this.canvas.style.height = `${Math.max(1, logicalHeight * scale)}px`;
+    const prevScale = this.view.scale;
+    const prevCx = this.view.cx;
+    const prevCy = this.view.cy;
+    const prevW = this.view.cssW;
+    const prevH = this.view.cssH;
+    this.view.cssW = displayWidth;
+    this.view.cssH = displayHeight;
+    this.canvas.style.width = '100%';
+    this.canvas.style.height = '100%';
     this.ctx = this.canvas.getContext('2d');
-    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const wasFitted = this.isViewFitted(prevScale, prevCx, prevCy, prevW, prevH);
+    if (reset || prevCx == null || prevCy == null || wasFitted) {
+      this.resetView();
+    } else {
+      this.view.scale = prevScale;
+      this.view.cx = prevCx;
+      this.view.cy = prevCy;
+      this.clampView();
+    }
+  }
+
+  isViewFitted(scale = this.view.scale, cx = this.view.cx, cy = this.view.cy, cssW = this.view.cssW, cssH = this.view.cssH) {
+    if (cx == null || cy == null || cssW < 8 || cssH < 8) {
+      return true;
+    }
+    const contain = Math.min(cssW / this.playfield.width, cssH / this.playfield.height);
+    const slop = Math.max(0.04, contain * 0.04);
+    return (
+      Math.abs((scale || 0) - contain) <= slop &&
+      Math.abs(cx - this.playfield.width / 2) <= 4 &&
+      Math.abs(cy - this.playfield.height / 2) <= 4
+    );
+  }
+
+  containScale(cssW = this.view.cssW, cssH = this.view.cssH) {
+    const width = Math.max(1, this.playfield.width);
+    const height = Math.max(1, this.playfield.height);
+    return Math.min(cssW / width, cssH / height);
+  }
+
+  resetView() {
+    this.view.scale = this.containScale();
+    this.view.cx = this.playfield.width / 2;
+    this.view.cy = this.playfield.height / 2;
+    this.syncView();
+  }
+
+  syncView() {
+    const { cssW, cssH, scale, cx, cy } = this.view;
+    this.view.ox = cssW / 2 - cx * scale;
+    this.view.oy = cssH / 2 - cy * scale;
+    this.applyViewTransform();
+  }
+
+  clampView() {
+    const { cssW, cssH } = this.view;
+    const width = this.playfield.width;
+    const height = this.playfield.height;
+    const contain = this.containScale(cssW, cssH);
+    const minScale = contain * 0.75;
+    const maxScale = Math.max(contain * 3.6, 2.4);
+    this.view.scale = Math.min(maxScale, Math.max(minScale, this.view.scale || contain));
+    const scale = this.view.scale;
+    const viewW = cssW / scale;
+    const viewH = cssH / scale;
+    if (viewW >= width) {
+      this.view.cx = width / 2;
+    } else {
+      const half = viewW / 2;
+      this.view.cx = Math.min(width - half, Math.max(half, this.view.cx));
+    }
+    if (viewH >= height) {
+      this.view.cy = height / 2;
+    } else {
+      const half = viewH / 2;
+      this.view.cy = Math.min(height - half, Math.max(half, this.view.cy));
+    }
+    this.syncView();
+  }
+
+  panView(dxCss, dyCss) {
+    const scale = this.view.scale || 1;
+    this.view.cx -= dxCss / scale;
+    this.view.cy -= dyCss / scale;
+    this.clampView();
+  }
+
+  zoomView(cssX, cssY, factor) {
+    const scale = this.view.scale || 1;
+    const worldX = (cssX - this.view.ox) / scale;
+    const worldY = (cssY - this.view.oy) / scale;
+    this.view.scale = scale * factor;
+    this.clampView();
+    this.view.ox = cssX - worldX * this.view.scale;
+    this.view.oy = cssY - worldY * this.view.scale;
+    this.view.cx = (this.view.cssW / 2 - this.view.ox) / this.view.scale;
+    this.view.cy = (this.view.cssH / 2 - this.view.oy) / this.view.scale;
+    this.clampView();
+  }
+
+  applyViewTransform() {
+    const dpr = window.devicePixelRatio || 1;
+    const { scale, ox, oy } = this.view;
+    this.ctx.setTransform(dpr * scale, 0, 0, dpr * scale, ox * dpr, oy * dpr);
   }
 
   eventToLogical(event) {
     const rect = this.canvas.getBoundingClientRect();
     const point = event.changedTouches ? event.changedTouches[0] : event;
+    const scale = this.view.scale || 1;
     return new Vector2D(
-      ((point.clientX - rect.left) / rect.width) * this.playfield.width,
-      ((point.clientY - rect.top) / rect.height) * this.playfield.height
+      (point.clientX - rect.left - this.view.ox) / scale,
+      (point.clientY - rect.top - this.view.oy) / scale
     );
   }
 
@@ -190,7 +315,13 @@ export class GameEngine {
     }
     this._collectParticles();
     this._unloadCollectors(depot, dt);
-    this.particles = this.particles.filter((particle) => !particle.collected);
+    this.particles = this.particles.filter((particle) => {
+      if (!particle.collected) {
+        return true;
+      }
+      this._releaseChip(particle);
+      return false;
+    });
   }
 
   tryTap(point) {
@@ -419,6 +550,12 @@ export class GameEngine {
     this.markDirty();
   }
 
+  replayTutorial() {
+    this.state.flags.tutorialStep = 0;
+    this.hint = !this.state.flags.tapped;
+    this.markDirty();
+  }
+
   hudSnapshot() {
     const cargoUsed = this.collectors.reduce((n, c) => n + c.used, 0);
     const cargoMax = this.collectors.reduce((n, c) => n + c.capacity, 0);
@@ -456,63 +593,14 @@ export class GameEngine {
       tutorialStep: this.state.flags.tutorialStep,
       tutorial: TUTORIAL_STEPS[this.state.flags.tutorialStep] || null,
       toasts: this.toasts,
-      banked: this.drones.some((drone) => drone.bankT > 0)
+      banked: this.drones.some((drone) => drone.bankT > 0),
+      rocks: this.asteroids.length,
+      maxAsteroids: this.fieldCap()
     };
   }
 
   draw() {
-    const ctx = this.ctx;
-    const { width: W, height: H } = this.playfield;
-    ctx.save();
-    if (this.shake > 0 && !this.state.settings.reducedMotion) {
-      ctx.translate((Math.random() - 0.5) * 6, (Math.random() - 0.5) * 6);
-    }
-    ctx.clearRect(-8, -8, W + 16, H + 16);
-    ctx.fillStyle = '#0f172a';
-    ctx.fillRect(-8, -8, W + 16, H + 16);
-    this._drawStars(ctx, W, H);
-    this._drawSectorTint(ctx, W, H);
-    this._drawGrid(ctx, W, H);
-    this._drawDepot(ctx);
-    this._drawRipples(ctx);
-    this._drawSparks(ctx);
-
-    for (const particle of this.particles) {
-      particle.draw(ctx);
-    }
-    for (const collector of this.collectors) {
-      collector.draw(ctx);
-    }
-    for (const drone of this.drones) {
-      drone.draw(ctx);
-    }
-    for (const asteroid of this.asteroids) {
-      asteroid.draw(ctx);
-    }
-    this._drawFloating(ctx);
-    if (this.combo >= 2) {
-      ctx.fillStyle = '#fde047';
-      ctx.font = '800 13px system-ui, sans-serif';
-      ctx.textAlign = 'left';
-      ctx.fillText(`COMBO ×${this.combo}`, 10, 18);
-    }
-    if (this.drones.some((drone) => drone.bankT > 0)) {
-      ctx.fillStyle = '#fbbf24';
-      ctx.font = '800 11px system-ui, sans-serif';
-      ctx.textAlign = 'right';
-      ctx.fillText('BANKED', W - 10, 18);
-    }
-    if (this.hint) {
-      ctx.fillStyle = 'rgba(248, 250, 252, 0.82)';
-      ctx.font = '700 13px system-ui, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('TAP UNTIL THE ROCK SHATTERS', W / 2, 28);
-    }
-    if (this.flash > 0) {
-      ctx.fillStyle = `rgba(251, 191, 36, ${0.18 * (this.flash / 0.25)})`;
-      ctx.fillRect(0, 0, W, H);
-    }
-    ctx.restore();
+    this.renderer.draw();
   }
 
   _spawnProbe() {
@@ -531,10 +619,10 @@ export class GameEngine {
     const chipValue =
       asteroid.unitValue * this.stats.oreValueMult * this.stats.sectorMult * this.stats.tapChipMult;
     for (let i = 0; i < count; i++) {
-      this.particles.push(spawnTapChip(origin, asteroid, chipValue));
+      this._absorbChip(spawnTapChip(origin, asteroid, chipValue));
     }
     if (this.stats.luckyChip > 0 && Math.random() < this.stats.luckyChip) {
-      this.particles.push(spawnTapChip(origin, asteroid, chipValue * 0.85));
+      this._absorbChip(spawnTapChip(origin, asteroid, chipValue * 0.85));
     }
     this.sound.playLeak();
   }
@@ -568,14 +656,15 @@ export class GameEngine {
       } else {
         n.normalize();
       }
-      const burst = spawnOreBurst(
-        asteroid,
-        n,
-        this.stats.oreValueMult,
-        this.stats.sectorMult,
-        this.stats.richVeins
+      this._absorbChips(
+        spawnOreBurst(
+          asteroid,
+          n,
+          this.stats.oreValueMult,
+          this.stats.sectorMult,
+          this.stats.richVeins
+        )
       );
-      this.particles.push(...burst);
       this.state.stats.asteroidsBroken += 1;
       const rare = asteroid.tier && ['gold', 'platinum', 'dark', 'void', 'horizon'].includes(asteroid.tier.id);
       if (rare) {
@@ -614,7 +703,7 @@ export class GameEngine {
   }
 
   _tickAsteroidSpawn(dt) {
-    if (this.asteroids.length >= this.stats.maxAsteroids) {
+    if (this.asteroids.length >= this.fieldCap()) {
       return;
     }
     this.asteroidSpawnTimer -= dt;
@@ -628,7 +717,7 @@ export class GameEngine {
     return Asteroid.spawn(
       this.playfield,
       this.state.sectorLevel,
-      this.stats.sectorMult,
+      this.stats.hpMult || 1,
       this.asteroids,
       this.stats.rareShift,
       this.stats.driftSpeed
@@ -636,7 +725,7 @@ export class GameEngine {
   }
 
   _fillAsteroids() {
-    while (this.asteroids.length < this.stats.maxAsteroids) {
+    while (this.asteroids.length < this.fieldCap()) {
       this.asteroids.push(this._spawnRock());
     }
     this.asteroidSpawnTimer = this.stats.asteroidSpawnDelay;
@@ -722,8 +811,12 @@ export class GameEngine {
     drone.bankT = 0.5;
     drone.bounces += 1;
     this.state.stats.wallBounces += 1;
-    this._spawnSparks(sparkX, sparkY, drone.bankT > 0 ? '#fbbf24' : '#7dd3fc', 8);
+    this._spawnSparks(sparkX, sparkY, '#fbbf24', 8);
     this.sound.playBounce();
+    if (!this.state.flags.seenBank) {
+      this.state.flags.seenBank = true;
+      this.pushToast('Charged');
+    }
     this._checkMilestones();
   }
 
@@ -746,10 +839,11 @@ export class GameEngine {
         drone.pos.x = asteroid.pos.x + normal.x * (radiusSum + 0.2);
         drone.pos.y = asteroid.pos.y + normal.y * (radiusSum + 0.2);
         drone.vel.reflect(normal);
-        const recoil = Math.max(1, Math.round(drone.maxHp * this.stats.recoilFrac));
-        drone.hp -= recoil;
+        const trade = Math.max(1, Math.floor(drone.damage));
+        const recoilFrac = Number.isFinite(this.stats.recoilFrac) ? this.stats.recoilFrac : 1;
+        drone.hp -= Math.max(1, Math.floor(trade * recoilFrac));
         const impact = Vector2D.add(asteroid.pos, normal.copy().mult(asteroid.radius));
-        let damage = drone.damage;
+        let damage = trade;
         const banked = drone.bankT > 0;
         if (banked && this.stats.bankShot > 0) {
           damage *= 1 + this.stats.bankShot;
@@ -808,7 +902,7 @@ export class GameEngine {
         this.state.stats.lifetimeCredits += rebate;
         this._spawnFloat(drone.pos.x, drone.pos.y, `+$${formatCredits(rebate)}`, '#7dd3fc');
       }
-      this.particles.push(
+      this._absorbChip(
         spawnSalvageChip(
           drone.pos,
           Math.max(0.4, this.stats.launchCost * 0.08 * this.stats.oreValueMult)
@@ -922,10 +1016,47 @@ export class GameEngine {
     }
   }
 
+  _absorbChips(list) {
+    for (const chip of list) {
+      this._absorbChip(chip);
+    }
+  }
+
+  _absorbChip(chip) {
+    if (this.particles.length >= TUNING.particleCap) {
+      let host = null;
+      let best = Infinity;
+      for (const particle of this.particles) {
+        if (particle.collected) {
+          continue;
+        }
+        const d = particle.pos.dist(chip.pos);
+        if (d < best) {
+          best = d;
+          host = particle;
+        }
+      }
+      if (host) {
+        host.value += chip.value;
+        host.radius = Math.min(8, host.radius + 0.12);
+        this._releaseChip(chip);
+        return;
+      }
+    }
+    this.particles.push(chip);
+  }
+
   _spawnFloat(x, y, text, color, life = 0.8) {
-    this.floatingTexts.push({ x, y, text, color, age: 0, life });
+    const item = this._floatPool.pop() || { x: 0, y: 0, text: '', color: '', age: 0, life: 0 };
+    item.x = x;
+    item.y = y;
+    item.text = text;
+    item.color = color;
+    item.age = 0;
+    item.life = life;
+    this.floatingTexts.push(item);
     if (this.floatingTexts.length > 28) {
-      this.floatingTexts.splice(0, this.floatingTexts.length - 28);
+      this._floatPool.push(this.floatingTexts.shift());
     }
   }
 
@@ -937,39 +1068,60 @@ export class GameEngine {
     for (let i = 0; i < n; i++) {
       const ang = Math.random() * Math.PI * 2;
       const spd = 40 + Math.random() * 120;
-      this.sparks.push({
-        x,
-        y,
-        vx: Math.cos(ang) * spd,
-        vy: Math.sin(ang) * spd,
+      const spark = this._sparkPool.pop() || {
+        x: 0,
+        y: 0,
+        vx: 0,
+        vy: 0,
         age: 0,
-        life: 0.18 + Math.random() * 0.22,
-        r: 1.1 + Math.random() * 1.8,
-        color
-      });
+        life: 0,
+        r: 0,
+        color: ''
+      };
+      spark.x = x;
+      spark.y = y;
+      spark.vx = Math.cos(ang) * spd;
+      spark.vy = Math.sin(ang) * spd;
+      spark.age = 0;
+      spark.life = 0.18 + Math.random() * 0.22;
+      spark.r = 1.1 + Math.random() * 1.8;
+      spark.color = color;
+      this.sparks.push(spark);
     }
-    if (this.sparks.length > 70) {
-      this.sparks.splice(0, this.sparks.length - 70);
+    while (this.sparks.length > 70) {
+      this._sparkPool.push(this.sparks.shift());
     }
   }
 
   _updateSparks(dt) {
+    const live = [];
     for (const spark of this.sparks) {
       spark.age += dt;
       spark.x += spark.vx * dt;
       spark.y += spark.vy * dt;
       spark.vx *= 0.92;
       spark.vy *= 0.92;
+      if (spark.age < spark.life) {
+        live.push(spark);
+      } else if (this._sparkPool.length < 80) {
+        this._sparkPool.push(spark);
+      }
     }
-    this.sparks = this.sparks.filter((spark) => spark.age < spark.life);
+    this.sparks = live;
   }
 
   _updateFloating(dt) {
+    const live = [];
     for (const item of this.floatingTexts) {
       item.age += dt;
       item.y -= 28 * dt;
+      if (item.age < item.life) {
+        live.push(item);
+      } else if (this._floatPool.length < 32) {
+        this._floatPool.push(item);
+      }
     }
-    this.floatingTexts = this.floatingTexts.filter((item) => item.age < item.life);
+    this.floatingTexts = live;
   }
 
   _updateRipples(dt) {
@@ -987,10 +1139,23 @@ export class GameEngine {
   }
 
   _updateRate() {
+    const cargo = this.collectors.reduce((n, c) => n + c.cargoValue(), 0);
+    let field = 0;
+    for (const particle of this.particles) {
+      if (!particle.collected) {
+        field += particle.value;
+      }
+    }
+    const wealth = this.state.credits + cargo + field;
+    this.wealthSamples.push({ t: this.elapsed, w: wealth });
     const cutoff = this.elapsed - 5;
-    this.creditEvents = this.creditEvents.filter((event) => event.t >= cutoff);
-    const sum = this.creditEvents.reduce((acc, event) => acc + event.amount, 0);
-    this.creditsPerSec = sum / 5;
+    this.wealthSamples = this.wealthSamples.filter((sample) => sample.t >= cutoff);
+    if (this.wealthSamples.length >= 2) {
+      const first = this.wealthSamples[0];
+      const last = this.wealthSamples[this.wealthSamples.length - 1];
+      const span = Math.max(0.25, last.t - first.t);
+      this.creditsPerSec = Math.max(0, (last.w - first.w) / span);
+    }
   }
 
   _seedStars() {
@@ -1002,111 +1167,29 @@ export class GameEngine {
         y: Math.random(),
         r: 0.4 + Math.random() * 1.3,
         a: 0.15 + Math.random() * 0.45,
+        p: Math.random() * Math.PI * 2,
+        layer: Math.random() < 0.35 ? 1 : 0
+      });
+    }
+    this.nebula = [];
+    const tint = this.stats.sector?.tint || 'rgba(56, 189, 248, 0.06)';
+    for (let i = 0; i < 3; i++) {
+      this.nebula.push({
+        x: 0.18 + Math.random() * 0.64,
+        y: 0.16 + Math.random() * 0.5,
+        r: 0.18 + Math.random() * 0.22,
+        a: 0.07 + Math.random() * 0.05,
+        tint,
         p: Math.random() * Math.PI * 2
       });
     }
-  }
-
-  _drawStars(ctx, width, height) {
-    for (const star of this.stars) {
-      const twinkle = 0.55 + 0.45 * Math.sin(this.elapsed * 2.1 + star.p);
-      ctx.fillStyle = `rgba(186, 230, 253, ${star.a * twinkle})`;
-      ctx.fillRect(star.x * width, star.y * height, star.r, star.r);
+    if (this.renderer) {
+      this.renderer.invalidate();
     }
   }
 
-  _drawSectorTint(ctx, width, height) {
-    const tint = this.stats.sector?.tint;
-    if (!tint) {
-      return;
-    }
-    ctx.fillStyle = tint;
-    ctx.fillRect(0, 0, width, height);
-  }
-
-  _drawGrid(ctx, width, height) {
-    ctx.strokeStyle = 'rgba(56, 189, 248, 0.08)';
-    ctx.fillStyle = 'rgba(56, 189, 248, 0.08)';
-    ctx.lineWidth = 1;
-    for (let x = 0; x <= width; x += 40) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, height);
-      ctx.stroke();
-    }
-    for (let y = 0; y <= height; y += 40) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(width, y);
-      ctx.stroke();
-      for (let x = 0; x <= width; x += 40) {
-        ctx.fillRect(x - 0.5, y - 0.5, 1.5, 1.5);
-      }
-    }
-  }
-
-  _drawDepot(ctx) {
-    const depot = this.depot();
-    const pulse = this.depotPulse > 0 ? this.depotPulse / 0.45 : 0;
-    ctx.fillStyle = `rgba(56, 189, 248, ${0.1 + pulse * 0.22})`;
-    ctx.beginPath();
-    ctx.arc(depot.x, depot.y, depot.r + pulse * 10, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(56, 189, 248, 0.18)';
-    ctx.setLineDash([4, 6]);
-    ctx.beginPath();
-    ctx.moveTo(depot.x, 12);
-    ctx.lineTo(depot.x, depot.y - depot.h);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.fillStyle = '#1e293b';
-    ctx.fillRect(depot.x - depot.w / 2, depot.y - depot.h / 2, depot.w, depot.h);
-    ctx.strokeStyle = pulse > 0 ? '#fbbf24' : '#38bdf8';
-    ctx.lineWidth = 1.6 + pulse * 1.4;
-    ctx.strokeRect(depot.x - depot.w / 2, depot.y - depot.h / 2, depot.w, depot.h);
-    ctx.fillStyle = '#f59e0b';
-    ctx.fillRect(depot.x - depot.w / 2 + 8, depot.y - 3, depot.w - 16, 4);
-    ctx.fillStyle = '#7dd3fc';
-    ctx.font = '700 8px system-ui, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('REFINERY', depot.x, depot.y - depot.h / 2 - 6);
-  }
-
-  _drawSparks(ctx) {
-    for (const spark of this.sparks) {
-      const t = 1 - spark.age / spark.life;
-      ctx.beginPath();
-      ctx.fillStyle = spark.color;
-      ctx.globalAlpha = Math.max(0, t);
-      ctx.arc(spark.x, spark.y, spark.r * t, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.globalAlpha = 1;
-  }
-
-  _drawRipples(ctx) {
-    for (const ripple of this.ripples) {
-      const t = ripple.age / ripple.life;
-      ctx.beginPath();
-      ctx.strokeStyle = ripple.miss
-        ? `rgba(148, 163, 184, ${0.4 * (1 - t)})`
-        : `rgba(56, 189, 248, ${0.7 * (1 - t)})`;
-      ctx.lineWidth = 2;
-      ctx.arc(ripple.x, ripple.y, 8 + t * 26, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-  }
-
-  _drawFloating(ctx) {
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.font = '700 11px system-ui, sans-serif';
-    for (const item of this.floatingTexts) {
-      ctx.globalAlpha = Math.max(0, 1 - item.age / item.life);
-      ctx.fillStyle = item.color;
-      ctx.fillText(item.text, item.x, item.y);
-    }
-    ctx.globalAlpha = 1;
+  _releaseChip(chip) {
+    releaseOre(chip);
   }
 }
 

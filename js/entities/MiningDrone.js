@@ -86,6 +86,13 @@ export class MiningDrone {
     ctx.closePath();
     ctx.fillStyle = this.bankT > 0 ? '#fde68a' : `rgba(125, 211, 252, ${0.55 + pct * 0.45})`;
     ctx.fill();
+    ctx.beginPath();
+    ctx.fillStyle = this.bankT > 0 ? 'rgba(251, 191, 36, 0.7)' : 'rgba(56, 189, 248, 0.55)';
+    ctx.moveTo(-r * 0.85, r * 0.28);
+    ctx.lineTo(-r * 1.55, 0);
+    ctx.lineTo(-r * 0.85, -r * 0.28);
+    ctx.closePath();
+    ctx.fill();
     ctx.shadowBlur = 0;
     ctx.beginPath();
     ctx.strokeStyle = this.bankT > 0 ? 'rgba(251, 191, 36, 0.95)' : 'rgba(56, 189, 248, 0.9)';

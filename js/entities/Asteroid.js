@@ -5,6 +5,16 @@ function randRange(min, max) {
   return min + Math.random() * (max - min);
 }
 
+function darkenHex(hex, amount = 0.35) {
+  const raw = hex.replace('#', '');
+  const n = parseInt(raw, 16);
+  const r = (n >> 16) & 255;
+  const g = (n >> 8) & 255;
+  const b = n & 255;
+  const mix = (c) => Math.round(c * (1 - amount));
+  return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`;
+}
+
 function lightenHex(hex, amount = 0.35) {
   const raw = hex.replace('#', '');
   const n = parseInt(raw, 16);
@@ -154,14 +164,15 @@ function buildSpalls(vertices, rng) {
 let nextAsteroidId = 1;
 
 export class Asteroid {
-  constructor({ pos, tier, sectorMult, driftSpeed = 0 }) {
+  constructor({ pos, tier, hpMult = 1, driftSpeed = 0 }) {
     this.id = nextAsteroidId++;
     this.pos = pos;
     this.tier = tier;
     this.radius = tier.radius;
     this.color = tier.color;
     this.strokeColor = lightenHex(tier.color);
-    this.maxHp = tier.baseHp * sectorMult;
+    this.shadeColor = darkenHex(tier.color, 0.45);
+    this.maxHp = tier.baseHp * hpMult;
     this.hp = this.maxHp;
     this.yieldCount = tier.yield;
     this.unitValue = tier.unitValue;
@@ -171,6 +182,16 @@ export class Asteroid {
     const rng = rngFrom(this.id * 9973 + Math.floor(this.radius * 17));
     this.cracks = buildCracks(this.vertices, this.radius, rng);
     this.spalls = buildSpalls(this.vertices, rng);
+    this.specks = [];
+    const speckN = 4 + Math.floor(rng() * 5);
+    for (let i = 0; i < speckN; i++) {
+      this.specks.push({
+        x: (rng() - 0.5) * this.radius * 1.1,
+        y: (rng() - 0.5) * this.radius * 1.1,
+        r: 0.7 + rng() * 1.6,
+        a: 0.12 + rng() * 0.22
+      });
+    }
     this.crackFlash = 0;
     const drift = (tier.drift || 0) + driftSpeed;
     if (drift > 0) {
@@ -192,7 +213,7 @@ export class Asteroid {
     return verts;
   }
 
-  static spawn(playfield, sectorLevel, sectorMult, existing = [], rareBias = 0, driftSpeed = 0) {
+  static spawn(playfield, sectorLevel, hpMult, existing = [], rareBias = 0, driftSpeed = 0) {
     const tier = pickAsteroidTier(sectorLevel, rareBias);
     const margin = tier.radius + 8;
     let pos = null;
@@ -212,7 +233,7 @@ export class Asteroid {
     if (!pos) {
       pos = new Vector2D(playfield.width * 0.5, playfield.height * 0.35);
     }
-    return new Asteroid({ pos, tier, sectorMult, driftSpeed });
+    return new Asteroid({ pos, tier, hpMult, driftSpeed });
   }
 
   noteHit() {
@@ -245,8 +266,23 @@ export class Asteroid {
     return 1 - Math.max(0, this.hp) / this.maxHp;
   }
 
+  _ensureFill(ctx) {
+    if (this._fill && this._fillCtx === ctx) {
+      return this._fill;
+    }
+    const r = this.radius;
+    const fill = ctx.createRadialGradient(-r * 0.32, -r * 0.38, r * 0.08, r * 0.1, r * 0.18, r * 1.15);
+    fill.addColorStop(0, this.strokeColor);
+    fill.addColorStop(0.45, this.color);
+    fill.addColorStop(1, this.shadeColor);
+    this._fill = fill;
+    this._fillCtx = ctx;
+    return fill;
+  }
+
   draw(ctx) {
     const damage = this.damageFrac();
+    const rare = ['gold', 'platinum', 'dark', 'void', 'horizon'].includes(this.tier.id);
     ctx.save();
     ctx.translate(this.pos.x, this.pos.y);
     ctx.rotate(this.rotation);
@@ -257,18 +293,24 @@ export class Asteroid {
       ctx.lineTo(this.vertices[i].x, this.vertices[i].y);
     }
     ctx.closePath();
-    const rare = ['gold', 'platinum', 'dark', 'void', 'horizon'].includes(this.tier.id);
-    if (rare) {
-      ctx.shadowBlur = 10 + Math.sin(this.rotation * 5) * 4;
+    const fill = this._ensureFill(ctx);
+    if (rare && this.crackFlash > 0) {
+      ctx.shadowBlur = 12;
       ctx.shadowColor = this.color;
     }
-    ctx.fillStyle = this.color;
+    ctx.fillStyle = fill;
     ctx.fill();
     ctx.shadowBlur = 0;
     ctx.save();
     ctx.clip();
     ctx.fillStyle = `rgba(15, 23, 42, ${0.04 + damage * 0.42})`;
     ctx.fill();
+    for (const speck of this.specks) {
+      ctx.beginPath();
+      ctx.fillStyle = `rgba(15, 23, 42, ${speck.a + damage * 0.15})`;
+      ctx.arc(speck.x, speck.y, speck.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     for (const crack of this.cracks) {
