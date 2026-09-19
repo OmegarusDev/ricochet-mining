@@ -1,0 +1,23 @@
+{
+  "id": "com.ricochet.mining.co.pwa",
+  "name": "Ricochet Mining Co.",
+  "short_name": "RicochetMine",
+  "description": "Tap-to-mine kinetic asteroid incremental. Launch paid probes, haul ore to the refinery pad.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait-primary",
+  "background_color": "#0f172a",
+  "theme_color": "#38bdf8",
+  "lang": "en",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    {
+      "src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' width='512' height='512'><rect width='512' height='512' fill='%230f172a'/><circle cx='256' cy='256' r='180' fill='%2338bdf8'/><circle cx='256' cy='256' r='100' fill='%230f172a'/><circle cx='360' cy='200' r='40' fill='%23f59e0b'/></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

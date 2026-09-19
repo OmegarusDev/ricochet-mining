@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
+  <meta name="theme-color" content="#38bdf8" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="RicochetMine" />
+  <title>Ricochet Mining Co.</title>
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="stylesheet" href="./css/style.css" />
+  <style>
+    html, body, #app, #canvas-wrap, #game-canvas {
+      background: #0f172a;
+      color: #f8fafc;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <header id="hud">
+      <div class="hud-row">
+        <h1>Ricochet Mining Co.</h1>
+        <div class="hud-actions">
+          <span id="sector-badge">Sector 1: Alpha</span>
+          <button id="btn-settings" type="button" aria-label="Settings" title="Settings">
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+              <path fill="currentColor" d="M19.14 12.94c.04-.31.06-.63.06-.94s-.02-.63-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.03 7.03 0 0 0-1.63-.94l-.36-2.54A.5.5 0 0 0 13.9 2h-3.8a.5.5 0 0 0-.5.42l-.36 2.54c-.59.22-1.14.53-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.8 8.84a.5.5 0 0 0 .12.64L4.95 11.06c-.04.31-.06.63-.06.94s.02.63.06.94L2.92 14.52a.5.5 0 0 0-.12.64l1.92 3.32c.13.23.4.32.6.22l2.39-.96c.49.41 1.04.72 1.63.94l.36 2.54c.05.24.26.42.5.42h3.8c.24 0 .45-.18.5-.42l.36-2.54c.59-.22 1.14-.53 1.63-.94l2.39.96c.23.1.47 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58zM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="hud-stats">
+        <span>$<span id="stat-credits">0</span></span>
+        <span class="hud-sep">|</span>
+        <span>Probes <span id="stat-drones">0/1</span></span>
+        <span class="hud-sep">|</span>
+        <span>Hold <span id="stat-cargo">0/2</span></span>
+        <span class="hud-sep">|</span>
+        <span>Combo <span id="stat-combo">—</span></span>
+        <span class="hud-sep">|</span>
+        <span><span id="stat-rate">0.0</span>/s</span>
+      </div>
+    </header>
+
+    <div id="canvas-wrap">
+      <canvas id="game-canvas" width="400" height="400"></canvas>
+      <div id="event-banner" class="hidden"></div>
+      <div id="toast-stack"></div>
+      <div id="coach-mark" class="hidden">
+        <strong id="coach-title"></strong>
+        <p id="coach-body"></p>
+        <button id="coach-skip" type="button">Skip briefing</button>
+      </div>
+      <div id="tap-meter"><span id="tap-meter-fill"></span></div>
+    </div>
+
+    <div id="deploy-bar">
+      <button id="btn-deploy" type="button">Launch Probe · $12</button>
+    </div>
+
+    <nav id="tabs" aria-label="Upgrade trees">
+      <button type="button" class="tab active" data-tab="tap">Tap</button>
+      <button type="button" class="tab" data-tab="fleet">Fleet</button>
+      <button type="button" class="tab" data-tab="haul">Haul</button>
+      <button type="button" class="tab" data-tab="sector">Sector</button>
+    </nav>
+
+    <section id="panel">
+      <div id="tab-tap" class="tab-page active"></div>
+      <div id="tab-fleet" class="tab-page"></div>
+      <div id="tab-haul" class="tab-page"></div>
+      <div id="tab-sector" class="tab-page"></div>
+    </section>
+  </div>
+
+  <div id="settings-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="modal-body settings-sheet">
+      <div class="settings-head">
+        <h2 id="settings-title">Settings</h2>
+        <button id="settings-close" type="button" class="ghost">Close</button>
+      </div>
+      <div class="settings-card">
+        <h3>Company jobs</h3>
+        <p class="settings-copy">Three live contracts. Claim pay, then a new one rolls with a fresh baseline.</p>
+        <div id="jobs-board"></div>
+      </div>
+      <div class="settings-card">
+        <h3>How to play</h3>
+        <p class="settings-copy">Tap rocks to cut them. Ore drops when a rock <strong>shatters</strong> — haulers then carry those chips to the <strong>REFINERY</strong> pad. Chip Harvest (Tap tree) is a chance to leak extra ore as a rock takes damage, and starts at 0%. Probes cost credits to launch and do not respawn. After a wall bounce they glow gold — Bank Shot (Fleet) turns that glow into bonus damage. Probe crit chance and crit damage sit on their own Ballistics tree, separate from pick crits. Auto-Launch is a mid-game Fleet unlock and still pays the launch fee.</p>
+      </div>
+      <div class="settings-card">
+        <label for="sfx-volume">SFX Volume</label>
+        <div class="settings-row">
+          <input id="sfx-volume" type="range" min="0" max="1" step="0.01" value="0.7" />
+          <span id="sfx-volume-value">70%</span>
+        </div>
+      </div>
+      <div class="settings-card">
+        <label for="game-speed">Simulation Speed</label>
+        <select id="game-speed">
+          <option value="0.5">0.5x</option>
+          <option value="1" selected>1x</option>
+          <option value="2">2x</option>
+        </select>
+      </div>
+      <div class="settings-card">
+        <label class="check-row"><input id="set-haptics" type="checkbox" checked /> Haptic taps</label>
+        <label class="check-row"><input id="set-numbers" type="checkbox" checked /> Damage numbers</label>
+        <label class="check-row"><input id="set-motion" type="checkbox" /> Reduced motion</label>
+      </div>
+      <div class="settings-card">
+        <h3>Install / save</h3>
+        <p class="settings-copy">Add to home screen as a WebAPK / PWA. Export a backup before wiping a device.</p>
+        <div class="modal-actions">
+          <button id="btn-install" class="hidden" type="button">Install app</button>
+          <button id="btn-export" type="button">Export save</button>
+          <button id="btn-import" type="button">Import save</button>
+        </div>
+        <p class="settings-copy">Build v4 · Ricochet Mining Co.</p>
+      </div>
+      <div class="settings-card">
+        <h3>Company ledger</h3>
+        <p id="stat-ledger" class="settings-copy"></p>
+      </div>
+      <div class="settings-card danger">
+        <h3>Danger zone</h3>
+        <p class="settings-copy">Wipe the corporation. Buried behind two confirmations, then a press-and-hold.</p>
+        <button id="btn-danger" type="button">Open danger zone</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="offline-modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-body">
+      <h2>Night shift report</h2>
+      <p id="offline-summary"></p>
+      <button id="offline-dismiss" type="button">Continue mining</button>
+    </div>
+  </div>
+
+  <div id="danger-modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-body">
+      <h2>Danger zone</h2>
+      <p>This erases probes, haulers, upgrades, sectors, jobs, and lifetime stats. There is no recovery.</p>
+      <div class="modal-actions">
+        <button id="danger-cancel" type="button" class="ghost">Back</button>
+        <button id="danger-continue" type="button">I understand</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="reset-modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-body">
+      <h2>Factory reset</h2>
+      <p>Hold the scuttle button to confirm total data destruction.</p>
+      <button id="btn-hold-reset" type="button">Hold to scuttle company</button>
+      <div id="hold-track"><span id="hold-fill"></span></div>
+      <button id="reset-cancel" type="button" class="ghost">Abort</button>
+    </div>
+  </div>
+
+  <div id="expand-modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-body">
+      <h2 id="expand-title">Expand sector</h2>
+      <p id="expand-copy"></p>
+      <div class="modal-actions">
+        <button id="expand-cancel" type="button" class="ghost">Stay</button>
+        <button id="expand-confirm" type="button">Expand</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="save-modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-body">
+      <h2>Save transfer</h2>
+      <p>Paste a backup to import, or copy the blob below.</p>
+      <textarea id="save-area" rows="7" spellcheck="false"></textarea>
+      <div class="modal-actions">
+        <button id="save-cancel" type="button" class="ghost">Close</button>
+        <button id="save-copy" type="button">Copy</button>
+        <button id="save-apply" type="button">Import &amp; reload</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    window.addEventListener('error', function (event) {
+      if (document.getElementById('boot-error')) return;
+      var box = document.createElement('pre');
+      box.id = 'boot-error';
+      box.style.cssText = 'position:fixed;left:12px;right:12px;bottom:12px;z-index:50;background:#1e293b;color:#f8fafc;padding:12px;border:1px solid #ef4444;border-radius:8px;white-space:pre-wrap;';
+      box.textContent = 'Load error: ' + (event.message || 'unknown');
+      document.body.appendChild(box);
+    });
+  </script>
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>
