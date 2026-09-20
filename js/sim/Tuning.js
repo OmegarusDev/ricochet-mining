@@ -20,9 +20,9 @@ export const TUNING = {
 
   hpIncomeExponent: 0.52,
 
-  tapDamageBase: 6,
+  tapDamageBase: 5,
   tapDamageGrowth: 1.2,
-  tapIntervalStart: 1.88,
+  tapIntervalStart: 2,
   tapIntervalFloor: 0.14,
   tapIntervalPerLevel: 0.058,
 
