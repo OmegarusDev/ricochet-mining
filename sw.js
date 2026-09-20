@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ricochet-v27';
+const CACHE_NAME = 'ricochet-v29';
 
 const PRECACHE_URLS = [
   './',

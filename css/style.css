@@ -29,22 +29,27 @@
 html,
 body {
   margin: 0;
+  width: 100%;
   height: 100%;
-  height: 100dvh;
   background: var(--bg);
   color: var(--text);
   font-family: var(--font);
   overflow: hidden;
+  overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 #app {
-  height: 100dvh;
-  height: 100svh;
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   display: grid;
   grid-template-rows: calc(var(--hud) + var(--safe-t)) minmax(0, 1fr) auto;
   min-height: 0;
   overflow: hidden;
+  overscroll-behavior: none;
   padding-left: var(--safe-l);
   padding-right: var(--safe-r);
   background:
@@ -64,6 +69,7 @@ body {
   min-height: calc(var(--hud) + var(--safe-t));
   border-bottom: 1px solid var(--line);
   background: linear-gradient(180deg, #0e1a2c 0%, #0a1422 100%);
+  touch-action: manipulation;
 }
 
 #btn-speed {

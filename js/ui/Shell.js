@@ -52,6 +52,7 @@ export class Shell {
       canvas: document.getElementById('game-canvas'),
       resetView: document.getElementById('btn-reset-view'),
       app: document.getElementById('app'),
+      hud: document.getElementById('hud'),
       shop: document.getElementById('shop'),
       handle: document.getElementById('sheet-handle'),
       sheetLabel: document.getElementById('sheet-label'),
@@ -168,8 +169,21 @@ export class Shell {
       this.sheetOpen = true;
       this.jobsPanel = true;
       this._applySheet();
-      this.els.jobs.scrollIntoView({ block: 'start' });
+      this.els.jobBtn.blur();
+      this.els.sheetBody.scrollTop = 0;
     });
+
+    this.els.hud?.addEventListener(
+      'pointerup',
+      () => {
+        const active = document.activeElement;
+        if (active && this.els.hud.contains(active) && typeof active.blur === 'function') {
+          active.blur();
+        }
+        window.scrollTo(0, 0);
+      },
+      { passive: true }
+    );
 
     this.els.volume.addEventListener('input', () => {
       const value = Number(this.els.volume.value);
@@ -214,7 +228,10 @@ export class Shell {
       });
     }
 
-    this.els.settingsBtn.addEventListener('click', () => this._show(this.els.settingsModal));
+    this.els.settingsBtn.addEventListener('click', () => {
+      this._updateLedger(this.engine.hudSnapshot());
+      this._show(this.els.settingsModal);
+    });
     this.els.settingsClose.addEventListener('click', () => this._hide(this.els.settingsModal));
     this.els.settingsModal.addEventListener('click', (event) => {
       if (event.target !== this.els.settingsModal) {

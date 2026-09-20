@@ -31,7 +31,29 @@ function isLocalHost() {
   return host === '127.0.0.1' || host === 'localhost';
 }
 
+function pinLayoutViewport() {
+  if (window.scrollX || window.scrollY) {
+    window.scrollTo(0, 0);
+  }
+  if (document.documentElement.scrollTop) {
+    document.documentElement.scrollTop = 0;
+  }
+  if (document.body.scrollTop) {
+    document.body.scrollTop = 0;
+  }
+}
+
+function lockLayoutViewport() {
+  pinLayoutViewport();
+  window.addEventListener('scroll', pinLayoutViewport, { passive: true });
+  window.addEventListener('focusin', pinLayoutViewport);
+  window.visualViewport?.addEventListener('scroll', pinLayoutViewport, { passive: true });
+  window.visualViewport?.addEventListener('resize', pinLayoutViewport, { passive: true });
+}
+
 export function registerPwa() {
+  lockLayoutViewport();
+
   if (!('serviceWorker' in navigator)) {
     return;
   }
