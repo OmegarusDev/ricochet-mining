@@ -100,8 +100,7 @@ export const TUTORIAL_JOBS = [
     stat: 'maxLiveDrones',
     amounts: [2],
     reward: () => 22,
-    blurb: 'Launch a second drill while the first is still alive. The next launch costs 20% more.',
-    fromNow: true
+    blurb: 'Launch a second drill while the first is still alive. The next launch costs 20% more.'
   }
 ];
 
@@ -231,7 +230,7 @@ export const EVENT_DEFS = [
   {
     id: 'deadeye',
     name: 'Deadeye window',
-    blurb: 'Probe crits run hot. Pick crits stay their own tree.',
+    blurb: 'Drill crits run hot. Laser crits stay their own tree.',
     duration: 28,
     color: '#38bdf8'
   }
@@ -308,8 +307,7 @@ function jobSeed(state, avoid) {
     defId: def.id,
     amount,
     reward,
-    baseline: Number(state.stats?.[def.stat] || 0),
-    claimed: false
+    baseline: Number(state.stats?.[def.stat] || 0)
   };
 }
 
@@ -321,7 +319,6 @@ function tutorialJobSeed(state, def) {
     amount,
     reward: Math.max(6, Math.floor(def.reward(amount, state.sectorLevel || 1))),
     baseline,
-    claimed: false,
     tutorial: true,
     blurb: def.blurb || ''
   };

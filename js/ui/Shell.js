@@ -31,7 +31,8 @@ export class Shell {
   constructor(engine) {
     this.engine = engine;
     this.activeTab = 'tap';
-    this.sheetOpen = window.matchMedia('(min-width: 900px)').matches;
+    this._desktopMq = window.matchMedia('(min-width: 900px)');
+    this.sheetOpen = this._desktopMq.matches;
     this.jobsPanel = false;
     this.holdTimer = 0;
     this.holding = false;
@@ -39,7 +40,7 @@ export class Shell {
     this._jobsSig = '';
     this._toastSig = '';
     this._treesBuilt = false;
-    this._openedForPick = false;
+    this._sectorSig = '';
     this.tabButtons = [...document.querySelectorAll('.tab')];
     this.tabsEl = document.getElementById('tabs');
     this.els = {
@@ -102,6 +103,14 @@ export class Shell {
       speedHud: document.getElementById('btn-speed')
     };
     this._bind();
+    if (typeof this._desktopMq.addEventListener === 'function') {
+      this._desktopMq.addEventListener('change', (event) => {
+        if (event.matches) {
+          this.sheetOpen = true;
+        }
+        this._applySheet();
+      });
+    }
     this.renderUpgrades(true);
     this.renderSectors();
     this.syncSettings();
@@ -225,7 +234,6 @@ export class Shell {
     const replay = document.getElementById('btn-replay-tips');
     if (replay) {
       replay.addEventListener('click', () => {
-        this._openedForPick = false;
         this.engine.replayTutorial();
         this._hide(this.els.settingsModal);
         this.update();
@@ -659,11 +667,8 @@ export class Shell {
     }
     const scroll = this.els.sheetBody.scrollTop;
     if (this.engine.tryBuy(button.dataset.buy)) {
-      if (button.dataset.buy === 'bounce_damp') {
-        this.renderUpgrades(true);
-      } else {
-        this.patchUpgrade(button.dataset.buy);
-      }
+      this.patchUpgrade(button.dataset.buy);
+      this._syncUnlocks(button.dataset.buy);
       this.patchPeek();
       this.els.sheetBody.scrollTop = scroll;
       this.update();
@@ -772,11 +777,13 @@ export class Shell {
     const lock = unlocked ? '' : `<span class="lock">Needs ${requirementText(def)}</span>`;
     return `
       <article class="upgrade-card${maxed ? ' maxed' : ''}${unlocked ? '' : ' locked'}" data-upgrade="${def.id}">
-        <div class="upgrade-head">
-          <h3>${def.name}</h3>
-          ${badge}${lock}
+        <div class="upgrade-main">
+          <div class="upgrade-head">
+            <h3>${def.name}</h3>
+            ${badge}${lock}
+          </div>
+          <p class="upgrade-meta">Lv ${level}/${def.maxLevel} · ${def.describe(level)}</p>
         </div>
-        <p class="upgrade-meta">Lv ${level}/${def.maxLevel} · ${def.describe(level)}</p>
         <button type="button" data-buy="${def.id}" ${canBuy ? '' : 'disabled'}>
           ${!unlocked ? 'Locked' : maxed ? 'MAX' : `Buy · $${formatCredits(cost)}`}
         </button>
@@ -935,6 +942,7 @@ export class Shell {
     }
     this._updateDeploy(snap);
     this.patchPeek();
+    this._updateSectorExpand(snap);
     if (!this.els.settingsModal.classList.contains('hidden')) {
       this._updateLedger(snap);
     }
@@ -992,25 +1000,46 @@ export class Shell {
 
   _updateUpgradeButtons(snap) {
     for (const def of UPGRADE_DEFS) {
-      document.querySelectorAll(`[data-buy="${def.id}"]`).forEach((button) => {
-        if (button === this.els.nextBuy) {
-          return;
-        }
-        const unlocked = isUnlocked(def, snap.upgrades);
-        const level = snap.upgrades[def.id] || 0;
-        const maxed = level >= def.maxLevel;
-        const cost = upgradeCost(def, level);
-        button.disabled = !unlocked || maxed || snap.credits < cost;
-        button.textContent = !unlocked ? 'Locked' : maxed ? 'MAX' : `Buy · $${formatCredits(cost)}`;
-      });
+      if (document.querySelector(`[data-upgrade="${def.id}"]`)) {
+        this.patchUpgrade(def.id);
+      }
     }
+  }
+
+  _syncUnlocks(boughtId) {
+    let missing = false;
+    for (const def of UPGRADE_DEFS) {
+      if (!def.requires || def.requires.id !== boughtId) {
+        continue;
+      }
+      if (!document.querySelector(`[data-upgrade="${def.id}"]`)) {
+        missing = true;
+        break;
+      }
+      this.patchUpgrade(def.id);
+    }
+    if (missing) {
+      this.renderUpgrades(true);
+    }
+  }
+
+  _updateSectorExpand(snap) {
+    const next = this.engine.nextSector();
+    const need = next ? sectorUnlockNeed(next, this.engine.stats) : Infinity;
+    const ready = Boolean(next && snap.totalOreHarvested >= need);
+    const sig = `${this.engine.state.sectorLevel}:${ready}:${next ? next.level : 0}`;
+    if (sig === this._sectorSig) {
+      return;
+    }
+    this._sectorSig = sig;
+    this.renderSectors();
   }
 
   _updateLedger(snap) {
     const s = snap.stats;
     const rebound = (snap.upgrades.bank_shot || 0) > 0;
     this.els.ledger.textContent =
-      `Taps ${s.taps.toLocaleString('en-US')} · Launches ${s.launches} · Lost ${s.probesLost} · Deposits ${s.deposits} · Rocks ${s.asteroidsBroken} · Crits ${s.crits} · Walls ${s.wallBounces || 0}${
+      `Taps ${s.taps.toLocaleString('en-US')} · Launches ${s.launches} · Lost ${s.probesLost} drills · Deposits ${s.deposits} · Rocks ${s.asteroidsBroken} · Crits ${s.crits} · Walls ${s.wallBounces || 0}${
         rebound ? ` · Rebounds ${s.bankHits || 0}` : ''
       } · Jobs ${snap.jobsCompleted} · Lifetime $${formatCredits(s.lifetimeCredits)}`;
   }

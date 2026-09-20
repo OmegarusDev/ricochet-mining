@@ -51,7 +51,7 @@ export class OreParticle {
       return;
     }
     const pulseR = Math.max(0.5, this.radius * (reduced ? 1 : 1 + 0.16 * Math.sin(this.pulse)));
-    const dim = this.isMagnetized ? 1 : 0.92;
+    const dim = this.isMagnetized ? 1 : 0.52;
     ctx.save();
     ctx.globalAlpha = dim;
     ctx.translate(this.pos.x, this.pos.y);

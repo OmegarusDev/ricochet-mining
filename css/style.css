@@ -14,8 +14,8 @@
   --red: #f87171;
   --font: 'Segoe UI', system-ui, sans-serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
-  --peek: 84px;
-  --hud: 48px;
+  --peek: 92px;
+  --hud: 54px;
   --safe-t: env(safe-area-inset-top, 0px);
   --safe-b: env(safe-area-inset-bottom, 0px);
   --safe-l: env(safe-area-inset-left, 0px);
@@ -24,6 +24,10 @@
 
 * {
   box-sizing: border-box;
+}
+
+html {
+  font-size: 18px;
 }
 
 html,
@@ -80,7 +84,7 @@ body {
   background: #132033;
   color: var(--muted);
   font: inherit;
-  font-size: 0.78rem;
+  font-size: 0.88rem;
   font-weight: 800;
   letter-spacing: 0.04em;
   border-radius: 8px;
@@ -97,7 +101,7 @@ body {
 .hud-cash {
   font-family: var(--mono);
   font-weight: 700;
-  font-size: 1.12rem;
+  font-size: 1.22rem;
   letter-spacing: 0.02em;
   color: var(--gold);
   font-variant-numeric: tabular-nums;
@@ -111,7 +115,7 @@ body {
 
 .hud-rate {
   font-family: var(--mono);
-  font-size: 0.72rem;
+  font-size: 0.85rem;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -123,7 +127,7 @@ body {
   background: #132033;
   color: var(--text);
   font: inherit;
-  font-size: 0.68rem;
+  font-size: 0.8rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -146,7 +150,7 @@ body {
   min-width: 1.4em;
   text-align: center;
   font-family: var(--mono);
-  font-size: 0.7rem;
+  font-size: 0.82rem;
 }
 
 #btn-jobs:not(.ready) #job-pip {
@@ -220,7 +224,7 @@ body {
   flex: 0 0 auto;
   z-index: 3;
   font-family: var(--mono);
-  font-size: 0.62rem;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -241,7 +245,7 @@ body {
   background: linear-gradient(180deg, #155e75 0%, #0e4a5c 100%);
   color: #ecfeff;
   font: inherit;
-  font-size: 0.92rem;
+  font-size: 1rem;
   font-weight: 800;
   letter-spacing: 0.04em;
   border-radius: 14px;
@@ -364,7 +368,7 @@ body {
 }
 
 #sheet-label {
-  font-size: 0.68rem;
+  font-size: 0.78rem;
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -377,7 +381,7 @@ body {
   background: linear-gradient(180deg, #b45309 0%, #92400e 100%);
   color: #fff7ed;
   font: inherit;
-  font-size: 0.92rem;
+  font-size: 1rem;
   font-weight: 800;
   border-radius: 14px;
   cursor: pointer;
@@ -392,7 +396,7 @@ body {
 }
 
 .peek-hint {
-  font-size: 0.62rem;
+  font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -448,7 +452,7 @@ body {
   background: transparent;
   color: var(--muted);
   font: inherit;
-  font-size: 0.76rem;
+  font-size: 0.86rem;
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -515,20 +519,36 @@ body {
   margin-bottom: 8px;
 }
 
+.upgrade-card {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.upgrade-main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .upgrade-card h3,
 .sector-card h3,
 .settings-card h3,
 .job-card h3 {
   margin: 0 0 4px;
-  font-size: 0.92rem;
+  font-size: 1.02rem;
 }
 
 .upgrade-card p,
 .sector-card p,
 .job-card p {
-  margin: 0 0 8px;
+  margin: 0;
   color: var(--muted);
-  font-size: 0.78rem;
+  font-size: 0.88rem;
+}
+
+.job-card p,
+.job-card .upgrade-meta {
+  margin: 0 0 6px;
 }
 
 .upgrade-card button,
@@ -544,7 +564,7 @@ body {
   background: var(--gold-dim);
   color: var(--text);
   font: inherit;
-  font-size: 0.8rem;
+  font-size: 0.88rem;
   font-weight: 700;
   padding: 10px 12px;
   min-height: 44px;
@@ -552,9 +572,19 @@ body {
   cursor: pointer;
 }
 
-.upgrade-card button,
+.upgrade-card button {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 5.6rem;
+  max-width: 46%;
+  align-self: stretch;
+  white-space: nowrap;
+  padding: 8px 10px;
+}
+
 .sector-card button {
   width: 100%;
+  margin-top: 8px;
 }
 
 .upgrade-card button:disabled,
@@ -573,15 +603,20 @@ body {
 .upgrade-meta,
 .sector-meta,
 .settings-copy {
-  margin: 0 0 8px;
-  font-size: 0.75rem;
+  margin: 0;
+  font-size: 0.86rem;
   color: var(--muted);
   line-height: 1.4;
 }
 
+.sector-meta,
+.settings-copy {
+  margin: 0 0 8px;
+}
+
 .group-title {
   margin: 4px 0 8px;
-  font-size: 0.68rem;
+  font-size: 0.78rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--cyan);
@@ -589,7 +624,7 @@ body {
 
 .group-blurb {
   margin: -4px 0 8px;
-  font-size: 0.72rem;
+  font-size: 0.84rem;
   color: var(--muted);
   line-height: 1.35;
 }
@@ -608,7 +643,7 @@ body {
 }
 
 .perm {
-  font-size: 0.62rem;
+  font-size: 0.72rem;
   color: var(--green);
   border: 1px solid var(--green);
   border-radius: 99px;
@@ -616,7 +651,7 @@ body {
 }
 
 .lock {
-  font-size: 0.62rem;
+  font-size: 0.72rem;
   color: #fca5a5;
   border: 1px solid #7f1d1d;
   border-radius: 99px;
@@ -638,7 +673,7 @@ body {
 
 .settings-card label {
   display: block;
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   font-weight: 650;
   margin-bottom: 8px;
 }
@@ -736,13 +771,13 @@ body {
 
 .modal-body h2 {
   margin: 0 0 8px;
-  font-size: 1.05rem;
+  font-size: 1.18rem;
 }
 
 .modal-body p {
   margin: 0 0 14px;
   color: var(--muted);
-  font-size: 0.9rem;
+  font-size: 1rem;
   line-height: 1.45;
 }
 
@@ -766,7 +801,7 @@ body {
   align-items: center;
   gap: 8px;
   margin-bottom: 8px;
-  font-size: 0.85rem;
+  font-size: 0.95rem;
 }
 
 .settings-card.danger {
@@ -809,7 +844,7 @@ body {
   z-index: 3;
   pointer-events: none;
   text-align: center;
-  font-size: 0.72rem;
+  font-size: 0.82rem;
   font-weight: 700;
   letter-spacing: 0.02em;
   padding: 6px 8px;
@@ -835,7 +870,7 @@ body {
   border: 1px solid var(--cyan);
   border-radius: 8px;
   padding: 7px 10px;
-  font-size: 0.75rem;
+  font-size: 0.88rem;
   font-weight: 650;
   text-align: center;
 }
@@ -847,7 +882,7 @@ body {
   background: rgba(7, 13, 24, 0.94);
   border: 1px solid var(--cyan);
   border-radius: 10px;
-  padding: 10px 12px;
+  padding: 12px 14px;
   pointer-events: none;
 }
 
@@ -863,40 +898,52 @@ body {
 
 #coach-mark strong {
   display: block;
-  font-size: 0.82rem;
-  margin-bottom: 4px;
+  font-size: 1.12rem;
+  margin-bottom: 6px;
 }
 
 #coach-mark p {
-  margin: 0 0 8px;
+  margin: 0 0 12px;
   color: var(--muted);
-  font-size: 0.75rem;
-  line-height: 1.4;
+  font-size: 1.02rem;
+  line-height: 1.45;
 }
 
 #coach-actions {
   display: flex;
-  gap: 8px;
-}
-
-#coach-next,
-#coach-skip {
-  border: 1px solid var(--line);
-  background: #243044;
-  color: var(--text);
-  font: inherit;
-  font-size: 0.78rem;
-  font-weight: 700;
-  padding: 8px 12px;
-  min-height: 44px;
-  border-radius: 8px;
+  justify-content: space-between;
+  align-items: stretch;
+  gap: 10px;
   pointer-events: auto;
 }
 
+#coach-skip {
+  flex: 0 0 auto;
+  min-width: 5.4rem;
+  max-width: 38%;
+  border: 1px solid var(--line);
+  background: #243044;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 8px 10px;
+  min-height: 44px;
+  border-radius: 8px;
+}
+
 #coach-next {
-  border-color: var(--cyan);
-  background: #123044;
-  color: var(--cyan);
+  flex: 1 1 auto;
+  min-width: 8rem;
+  border: 1px solid var(--gold);
+  background: linear-gradient(180deg, #b45309 0%, #92400e 100%);
+  color: #fff7ed;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 800;
+  padding: 8px 16px;
+  min-height: 48px;
+  border-radius: 8px;
 }
 
 #app[data-coach='jobs'] #btn-jobs {
@@ -905,7 +952,7 @@ body {
 
 .job-pay {
   color: var(--gold);
-  font-size: 0.75rem;
+  font-size: 0.86rem;
   font-weight: 700;
 }
 
@@ -932,7 +979,7 @@ body {
   background: var(--gold-dim);
   color: var(--text);
   font: inherit;
-  font-size: 0.78rem;
+  font-size: 0.88rem;
   font-weight: 700;
   padding: 10px 12px;
   min-height: 44px;
@@ -954,29 +1001,20 @@ body {
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 8px;
-  font: 0.72rem/1.4 var(--mono);
-}
-
-#playfield[data-coach='tap'] {
-  box-shadow: inset 0 0 0 3px rgba(251, 191, 36, 0.45);
-}
-
-#playfield[data-coach='haul'] {
-  box-shadow: inset 0 -68px 56px -10px rgba(251, 191, 36, 0.42);
-}
-
-#app[data-coach='launch'] #btn-deploy {
-  box-shadow: 0 0 0 3px rgba(94, 234, 212, 0.7), 0 8px 24px rgba(6, 182, 212, 0.28);
-}
-
-#canvas-wrap[data-coach='buy'] ~ #shop #btn-next-buy,
-#app:has(#canvas-wrap[data-coach='buy']) #btn-next-buy {
-  box-shadow: 0 0 0 2px var(--gold);
+  font: 0.84rem/1.4 var(--mono);
 }
 
 #btn-replay-tips {
   width: 100%;
   margin-top: 8px;
+}
+
+button:focus-visible,
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
 }
 
 @media (min-width: 720px) {

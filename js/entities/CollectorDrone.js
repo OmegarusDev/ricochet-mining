@@ -22,7 +22,6 @@ export class CollectorDrone {
     this.thrust = [];
     this.targetParticle = null;
     this.cargo = [];
-    this.unloadLock = 0;
     this.unloadAcc = 0;
   }
 
@@ -52,7 +51,6 @@ export class CollectorDrone {
 
   update(dt, playfield, particles, depot, stats) {
     this.hoverTime += dt;
-    this.unloadLock = Math.max(0, this.unloadLock - dt);
     const live = particles.filter((p) => !p.collected);
     const nearDepot = this.pos.dist(this.depotTarget(depot)) <= depot.r;
 

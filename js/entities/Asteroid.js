@@ -274,10 +274,24 @@ export class Asteroid {
     return fill;
   }
 
-  draw(ctx) {
+  draw(ctx, playfield) {
     const damage = this.damageFrac();
     const rare = ['gold', 'platinum', 'dark', 'void', 'horizon'].includes(this.tier.id);
+    let wrapFade = 1;
+    if (playfield) {
+      const overhang = Math.max(
+        0,
+        this.radius - this.pos.x,
+        this.pos.x + this.radius - playfield.width,
+        this.radius - this.pos.y,
+        this.pos.y + this.radius - playfield.height
+      );
+      if (overhang > 0) {
+        wrapFade = Math.max(0.08, 1 - overhang / Math.max(8, this.radius * 2));
+      }
+    }
     ctx.save();
+    ctx.globalAlpha = wrapFade;
     ctx.translate(this.pos.x, this.pos.y);
     ctx.rotate(this.rotation);
     ctx.beginPath();

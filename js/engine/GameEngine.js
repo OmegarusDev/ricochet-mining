@@ -50,7 +50,6 @@ export class GameEngine {
     this.manualCooldown = 0;
     this.tapCooldown = 0;
     this.asteroidSpawnTimer = 0;
-    this.creditEvents = [];
     this.creditsPerSec = 0;
     this.dirty = true;
     this.elapsed = 0;
@@ -258,16 +257,17 @@ export class GameEngine {
   }
 
   update(dt) {
-    this.elapsed += dt;
-    this.comboTimer = Math.max(0, this.comboTimer - dt);
-    this.shake = Math.max(0, this.shake - dt);
-    this.flash = Math.max(0, this.flash - dt);
-    this.depotPulse = Math.max(0, this.depotPulse - dt);
+    const simDt = Math.min(dt * (this.state.settings.gameSpeed || 1), 0.1);
+    this.elapsed += simDt;
+    this.comboTimer = Math.max(0, this.comboTimer - simDt);
+    this.shake = Math.max(0, this.shake - simDt);
+    this.flash = Math.max(0, this.flash - simDt);
+    this.depotPulse = Math.max(0, this.depotPulse - simDt);
     if (this.comboTimer <= 0) {
       this.combo = 0;
       this.comboId = null;
     }
-    let frameTime = Math.min(dt * this.state.settings.gameSpeed, 0.1);
+    let frameTime = simDt;
     while (frameTime > 0) {
       const subDt = Math.min(frameTime, 0.008);
       this.updatePhysicsSubStep(subDt);
@@ -278,12 +278,12 @@ export class GameEngine {
         drone.recordTrail();
       }
     }
-    this._updateFloating(dt);
-    this._updateRipples(dt);
-    this._updateSparks(dt);
-    this._updateBolts(dt);
-    this._updateToasts(dt);
-    this._tickEvent(dt);
+    this._updateFloating(simDt);
+    this._updateRipples(simDt);
+    this._updateSparks(simDt);
+    this._updateBolts(simDt);
+    this._updateToasts(simDt);
+    this._tickEvent(simDt);
     this._updateRate();
   }
 
@@ -358,7 +358,7 @@ export class GameEngine {
     this.tapCooldown = this.stats.tapInterval;
     this.state.stats.taps += 1;
     this.state.flags.tapped = true;
-    this.ripples.push({ x: point.x, y: point.y, age: 0, life: 0.35, miss: false });
+    this.ripples.push({ x: point.x, y: point.y, age: 0, life: 0.35 });
 
     if (this.comboId === target.id) {
       this.combo += 1;
@@ -423,8 +423,7 @@ export class GameEngine {
       angle: Math.atan2(dy, dx),
       t: 0,
       dur: Math.min(fast ? 0.05 : 0.42, dist / speed),
-      payload,
-      miss: false
+      payload
     });
   }
 
@@ -462,7 +461,14 @@ export class GameEngine {
       this._spawnSparks(bolt.tx, bolt.ty, '#f87171', 5);
       return;
     }
-    this._strikeAsteroid(target, damage, target.pos, { tap: true, crit, over });
+    const shot = new Vector2D(target.pos.x - bolt.ox, target.pos.y - bolt.oy);
+    if (shot.magSq() === 0) {
+      shot.y = -1;
+    } else {
+      shot.normalize();
+    }
+    const impact = new Vector2D(target.pos.x + shot.x, target.pos.y + shot.y);
+    this._strikeAsteroid(target, damage, impact, { tap: true, crit, over });
     if (extra > 0 && secondId) {
       const second = this.asteroids.find((rock) => rock.id === secondId && !rock.isDestroyed());
       if (second) {
@@ -603,6 +609,8 @@ export class GameEngine {
     this.floatingTexts = [];
     this.ripples = [];
     this.sparks = [];
+    this.bolts = [];
+    this.wealthSamples = [];
     this.depotPulse = 0;
     this.event = null;
     this.nextCollectorId = 1;
@@ -935,21 +943,18 @@ export class GameEngine {
         if (distSq > radiusSum * radiusSum) {
           continue;
         }
-        let nx;
-        let ny;
-        if (distSq === 0) {
-          nx = 1;
-          ny = 0;
-        } else {
-          const dist = Math.sqrt(distSq);
-          nx = dx / dist;
-          ny = dy / dist;
-        }
+        const nx = distSq === 0 ? 1 : dx / Math.sqrt(distSq);
+        const ny = distSq === 0 ? 0 : dy / Math.sqrt(distSq);
         drone.pos.x = asteroid.pos.x + nx * (radiusSum + 0.2);
         drone.pos.y = asteroid.pos.y + ny * (radiusSum + 0.2);
         const vn = drone.vel.x * nx + drone.vel.y * ny;
-        drone.vel.x -= 2 * vn * nx;
-        drone.vel.y -= 2 * vn * ny;
+        if (vn < 0) {
+          drone.vel.reflect(new Vector2D(nx, ny));
+        }
+        if (drone.rockLock > 0) {
+          continue;
+        }
+        drone.rockLock = 0.12;
         const trade = Math.max(1, Math.floor(drone.damage));
         const recoilFrac = Number.isFinite(this.stats.recoilFrac) ? this.stats.recoilFrac : 1;
         drone.hp -= Math.max(1, Math.floor(trade * recoilFrac));
@@ -1084,7 +1089,6 @@ export class GameEngine {
         this.state.totalOreHarvested += gained;
         this.state.stats.lifetimeCredits += gained;
         this.state.stats.deposits += chips;
-        this.creditEvents.push({ t: this.elapsed, amount: gained });
         this._spawnFloat(depot.x, depot.y - 18, `+$${formatCredits(gained)}`, '#f59e0b');
         this.depotPulse = 0.45;
         this.sound.playUnload();

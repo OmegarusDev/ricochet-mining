@@ -12,6 +12,7 @@ export class MiningDrone {
     this.bounces = 0;
     this.bankT = 0;
     this.bounceLock = 0;
+    this.rockLock = 0;
   }
 
   integrate(dt) {
@@ -19,6 +20,7 @@ export class MiningDrone {
     this.pos.y += this.vel.y * dt;
     this.bankT = Math.max(0, this.bankT - dt);
     this.bounceLock = Math.max(0, this.bounceLock - dt);
+    this.rockLock = Math.max(0, this.rockLock - dt);
   }
 
   recordTrail() {
@@ -34,9 +36,14 @@ export class MiningDrone {
 
   applyStats({ damage, maxHp, speed, radius }) {
     this.damage = damage;
+    const wasDead = this.hp <= 0;
     const hpRatio = this.maxHp > 0 ? this.hp / this.maxHp : 1;
     this.maxHp = maxHp;
-    this.hp = Math.min(maxHp, Math.max(1, hpRatio * maxHp));
+    if (wasDead) {
+      this.hp = 0;
+    } else {
+      this.hp = Math.min(maxHp, Math.max(1, hpRatio * maxHp));
+    }
     if (typeof radius === 'number') {
       this.radius = radius;
     }

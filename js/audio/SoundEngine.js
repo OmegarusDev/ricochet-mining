@@ -103,7 +103,7 @@ export class SoundEngine {
     source.stop(t + duration + 0.02);
   }
 
-  playHit() {
+  playHit(intensity = 10) {
     if (!this._ready()) {
       return;
     }
@@ -112,9 +112,10 @@ export class SoundEngine {
       return;
     }
     this._lastHit = t;
+    const punch = Math.max(6, Number(intensity) || 10);
     this._playGravel(this._gravelHits, {
-      cutoff: 720 + Math.random() * 380,
-      peak: 0.32,
+      cutoff: 520 + Math.min(520, punch * 6),
+      peak: 0.2 + Math.min(0.22, punch / 220),
       duration: 0.08,
       q: 0.7
     });
@@ -145,11 +146,27 @@ export class SoundEngine {
     this.playHit(80);
   }
 
-  playLeak() {}
+  playLeak() {
+    if (!this._ready()) {
+      return;
+    }
+    this._playGravel(this._gravelHits, {
+      cutoff: 1400 + Math.random() * 400,
+      peak: 0.08,
+      duration: 0.05,
+      q: 1.4
+    });
+  }
 
-  playCollect() {}
+  playCollect() {
+    this._beep(880, 0.045, 0.07, 0, 'triangle');
+    this._beep(1320, 0.03, 0.05, 0.02, 'sine');
+  }
 
-  playBounce() {}
+  playBounce() {
+    this._beep(620 + Math.random() * 80, 0.05, 0.11, 0, 'square');
+    this._beep(980, 0.04, 0.06, 0.02, 'sine');
+  }
 
   playLaunch() {
     this._beep(392, 0.07, 0.09);

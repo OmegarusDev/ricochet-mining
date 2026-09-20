@@ -15,7 +15,7 @@
   <link rel="manifest" href="./manifest.json" />
   <link rel="icon" href="./icons/favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
-  <link rel="stylesheet" href="./css/style.css?v=32" />
+  <link rel="stylesheet" href="./css/style.css?v=33" />
   <style>
     html, body, #app, #canvas-wrap, #playfield, #game-canvas {
       background: #070d18;
@@ -26,7 +26,7 @@
 <body>
   <div id="app">
     <header id="hud">
-      <button id="btn-jobs" type="button" aria-label="Contracts">
+      <button id="btn-jobs" type="button" aria-label="Jobs">
         Jobs <span id="job-pip">0</span>
       </button>
       <span id="sector-badge">S1 Alpha</span>
@@ -56,8 +56,8 @@
         <strong id="coach-title"></strong>
         <p id="coach-body"></p>
         <div id="coach-actions">
+          <button id="coach-skip" type="button">Skip tutorial</button>
           <button id="coach-next" type="button">Next</button>
-          <button id="coach-skip" type="button">Skip</button>
         </div>
       </div>
     </div>
@@ -219,6 +219,6 @@
       document.body.appendChild(box);
     });
   </script>
-  <script type="module" src="./js/main.js?v=32"></script>
+  <script type="module" src="./js/main.js?v=33"></script>
 </body>
 </html>

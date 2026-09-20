@@ -1,5 +1,5 @@
 import { derivedStats, zeroUpgrades } from '../ui/Upgrades.js';
-import { emptyJobs, fillJobs, TUTORIAL_JOBS, TUTORIAL_STEPS } from '../content/Campaign.js';
+import { emptyJobs, fillJobs } from '../content/Campaign.js';
 
 export const SAVE_KEY = 'RICOCHET_MINING_SAVE_V4';
 export const LEGACY_KEYS = ['RICOCHET_MINING_SAVE_V3', 'RICOCHET_MINING_SAVE_V2'];
@@ -39,9 +39,7 @@ export function defaultState() {
     flags: {
       tapped: false,
       tutorialStep: 0,
-      seenBank: false,
-      zeroFleetStart: true,
-      jobsTutorialV2: true
+      seenBank: false
     },
     jobs: emptyJobs(),
     milestones: []
@@ -67,32 +65,8 @@ function mergeState(raw) {
     milestones: Array.isArray(raw.milestones) ? raw.milestones : []
   };
   merged.stats.drillLicenses = merged.stats.drillLicenses || merged.upgrades.drone_max_count || 0;
-  if (!merged.flags.zeroFleetStart) {
-    merged.flags.zeroFleetStart = true;
-    if (
-      (merged.upgrades.drone_max_count || 0) === 0 &&
-      ((merged.stats.launches || 0) > 0 || (merged.stats.taps || 0) > 8)
-    ) {
-      merged.upgrades.drone_max_count = 1;
-      merged.stats.drillLicenses = Math.max(1, merged.stats.drillLicenses || 0);
-    }
-  }
-  if (!merged.flags.jobsTutorialV2) {
-    merged.flags.jobsTutorialV2 = true;
-    const oldDone =
-      (raw.flags?.tutorialStep || 0) >= 4 ||
-      (merged.stats.launches || 0) > 0 ||
-      (merged.stats.jobsCompleted || 0) > 0;
-    if (oldDone) {
-      merged.jobs.tutorialIndex = TUTORIAL_JOBS.length;
-      merged.flags.tutorialStep = TUTORIAL_STEPS.length;
-    }
-  }
   if (typeof merged.jobs.tutorialIndex !== 'number') {
     merged.jobs.tutorialIndex = 0;
-  }
-  if (merged.jobs.tutorialIndex >= 7) {
-    merged.jobs.tutorialIndex = TUTORIAL_JOBS.length;
   }
   fillJobs(merged);
   return merged;

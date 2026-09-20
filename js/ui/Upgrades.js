@@ -293,7 +293,7 @@ export const UPGRADE_DEFS = [
     describe: (level) =>
       level <= 0
         ? 'Off — drills never crit (laser crits stay separate)'
-        : `Probe crit chance: ${(Math.min(0.48, 0.07 + (level - 1) * 0.021) * 100).toFixed(0)}%`
+        : `Drill crit chance: ${(Math.min(0.48, 0.07 + (level - 1) * 0.021) * 100).toFixed(0)}%`
   }),
   u({
     id: 'probe_crit_dmg',

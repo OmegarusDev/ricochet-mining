@@ -4,8 +4,7 @@ export class Renderer {
     this._cache = {
       key: '',
       nebula: [],
-      vignette: null,
-      grid: null
+      vignette: null
     };
   }
 
@@ -36,7 +35,7 @@ export class Renderer {
     this._drawRail(ctx, W, H);
     this._drawDepot(ctx);
     for (const asteroid of engine.asteroids) {
-      asteroid.draw(ctx);
+      asteroid.draw(ctx, engine.playfield);
     }
     this._drawBolts(ctx);
     this._drawRipples(ctx);
@@ -54,19 +53,19 @@ export class Renderer {
     this._drawFloating(ctx);
     if (engine.combo >= 2) {
       ctx.fillStyle = '#fde047';
-      ctx.font = '800 13px ui-monospace, SFMono-Regular, Menlo, sans-serif';
+      ctx.font = '800 16px ui-monospace, SFMono-Regular, Menlo, sans-serif';
       ctx.textAlign = 'left';
       ctx.fillText(`COMBO ×${engine.combo}`, 10, 18);
     }
     if (engine.stats.bankShot > 0 && engine.drones.some((drone) => drone.bankT > 0)) {
       ctx.fillStyle = '#fbbf24';
-      ctx.font = '800 11px ui-monospace, SFMono-Regular, Menlo, sans-serif';
+      ctx.font = '800 14px ui-monospace, SFMono-Regular, Menlo, sans-serif';
       ctx.textAlign = 'right';
       ctx.fillText('REBOUND', W - 10, 18);
     }
     if (engine.hint) {
       ctx.fillStyle = 'rgba(248, 250, 252, 0.82)';
-      ctx.font = '700 13px system-ui, sans-serif';
+      ctx.font = '700 16px system-ui, sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText('FIRE THE LASER UNTIL IT SHATTERS', W / 2, 28);
     }
@@ -262,7 +261,7 @@ export class Renderer {
     ctx.fillStyle = '#f59e0b';
     ctx.fillRect(depot.x - depot.w / 2 + 8, depot.y - 3, depot.w - 16, 5);
     ctx.fillStyle = '#e0f2fe';
-    ctx.font = '800 9px ui-monospace, SFMono-Regular, Menlo, sans-serif';
+    ctx.font = '800 11px ui-monospace, SFMono-Regular, Menlo, sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('REFINERY', depot.x, depot.y - depot.h / 2 - 6);
     ctx.fillStyle = 'rgba(251, 191, 36, 0.55)';
@@ -310,9 +309,7 @@ export class Renderer {
     for (const ripple of this.engine.ripples) {
       const t = ripple.age / ripple.life;
       ctx.beginPath();
-      ctx.strokeStyle = ripple.miss
-        ? `rgba(148, 163, 184, ${0.4 * (1 - t)})`
-        : `rgba(56, 189, 248, ${0.7 * (1 - t)})`;
+      ctx.strokeStyle = `rgba(56, 189, 248, ${0.7 * (1 - t)})`;
       ctx.lineWidth = 2;
       ctx.arc(ripple.x, ripple.y, 8 + t * 26, 0, Math.PI * 2);
       ctx.stroke();
@@ -322,7 +319,7 @@ export class Renderer {
   _drawFloating(ctx) {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.font = '700 11px ui-monospace, SFMono-Regular, Menlo, sans-serif';
+    ctx.font = '700 13px ui-monospace, SFMono-Regular, Menlo, sans-serif';
     for (const item of this.engine.floatingTexts) {
       ctx.globalAlpha = Math.max(0, 1 - item.age / item.life);
       ctx.fillStyle = item.color;

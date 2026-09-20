@@ -102,9 +102,6 @@ export function snapshot(upgrades, sectorLevel, event = null, opts = {}) {
   } else if (spawnRate + 1e-6 < killRate) {
     bottleneck = 'spawn';
   }
-  const launchTax = d.autoLaunchEnabled
-    ? (d.maxDrones / Math.max(0.5, d.autoDeployInterval)) * d.launchCost * 0.15
-    : 0;
   return {
     stats: d,
     belt,
@@ -118,7 +115,7 @@ export function snapshot(upgrades, sectorLevel, event = null, opts = {}) {
     ttk,
     mined,
     haulCap,
-    orePerSec: Math.max(0, orePerSec - launchTax * 0),
+    orePerSec: Math.max(0, orePerSec),
     bottleneck,
     probeCount,
     launchCost: d.launchCost,
