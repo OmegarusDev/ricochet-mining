@@ -1332,11 +1332,15 @@ function compactCredits(amount, suffix) {
     return `${Math.floor(amount)}${suffix}`;
   }
   if (amount >= 10) {
-    return `${Math.floor(amount)}${suffix}`;
+    const rounded = amount.toFixed(1);
+    if (Number(rounded) >= 100) {
+      return `100${suffix}`;
+    }
+    return `${rounded}${suffix}`;
   }
-  const rounded = amount.toFixed(1);
+  const rounded = amount.toFixed(2);
   if (Number(rounded) >= 10) {
-    return `10${suffix}`;
+    return `10.0${suffix}`;
   }
   return `${rounded}${suffix}`;
 }
