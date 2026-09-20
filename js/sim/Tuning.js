@@ -32,7 +32,7 @@ export const TUNING = {
   probeSpeedStart: 30,
   probeSpeedPerLevel: 13,
   startLaunchCost: 20,
-  launchCostPerSlot: 7,
+  launchCostGrowth: 0.2,
 
   surveyStart: 400,
   surveyPerLevel: 80,
@@ -96,6 +96,7 @@ export function fieldSize(level) {
 }
 
 export function launchFee(liveCount, discount) {
-  const raw = TUNING.startLaunchCost + Math.max(0, liveCount) * TUNING.launchCostPerSlot;
+  const n = Math.max(0, liveCount);
+  const raw = TUNING.startLaunchCost * Math.pow(1 + TUNING.launchCostGrowth, n);
   return Math.max(5, Math.floor(raw * (1 - (discount || 0))));
 }
