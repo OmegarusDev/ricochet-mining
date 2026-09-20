@@ -151,9 +151,10 @@ export class Shell {
     if (!hud) {
       return;
     }
-    let size = 13;
-    hud.style.setProperty('--hud-fs', String(size));
-    while (hud.scrollWidth > hud.clientWidth + 1 && size > 10) {
+    hud.style.removeProperty('--hud-fs');
+    const base = Number.parseFloat(getComputedStyle(hud).getPropertyValue('--hud-fs')) || 16;
+    let size = base;
+    while (hud.scrollWidth > hud.clientWidth + 1 && size > 11) {
       size -= 0.5;
       hud.style.setProperty('--hud-fs', String(size));
     }
