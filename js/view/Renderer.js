@@ -38,6 +38,7 @@ export class Renderer {
     for (const asteroid of engine.asteroids) {
       asteroid.draw(ctx);
     }
+    this._drawBolts(ctx);
     this._drawRipples(ctx);
     this._drawSparks(ctx);
 
@@ -61,13 +62,13 @@ export class Renderer {
       ctx.fillStyle = '#fbbf24';
       ctx.font = '800 11px ui-monospace, SFMono-Regular, Menlo, sans-serif';
       ctx.textAlign = 'right';
-      ctx.fillText('BANKED', W - 10, 18);
+      ctx.fillText('REBOUND', W - 10, 18);
     }
     if (engine.hint) {
       ctx.fillStyle = 'rgba(248, 250, 252, 0.82)';
       ctx.font = '700 13px system-ui, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('TAP UNTIL THE ROCK SHATTERS', W / 2, 28);
+      ctx.fillText('FIRE THE LASER UNTIL IT SHATTERS', W / 2, 28);
     }
     if (engine.flash > 0) {
       ctx.fillStyle = `rgba(251, 191, 36, ${0.18 * (engine.flash / 0.25)})`;
@@ -270,6 +271,27 @@ export class Renderer {
     ctx.lineTo(depot.x, depot.y - depot.h / 2 - 4);
     ctx.lineTo(depot.x + 10, depot.y - depot.h / 2 + 4);
     ctx.fill();
+  }
+
+  _drawBolts(ctx) {
+    for (const bolt of this.engine.bolts) {
+      const nx = Math.cos(bolt.angle);
+      const ny = Math.sin(bolt.angle);
+      const len = 26;
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = 'rgba(239, 68, 68, 0.35)';
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(bolt.x - nx * len, bolt.y - ny * len);
+      ctx.lineTo(bolt.x, bolt.y);
+      ctx.stroke();
+      ctx.strokeStyle = bolt.payload?.crit ? '#fecaca' : '#ef4444';
+      ctx.lineWidth = 2.1;
+      ctx.beginPath();
+      ctx.moveTo(bolt.x - nx * len, bolt.y - ny * len);
+      ctx.lineTo(bolt.x, bolt.y);
+      ctx.stroke();
+    }
   }
 
   _drawSparks(ctx) {

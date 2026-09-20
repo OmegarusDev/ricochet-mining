@@ -193,13 +193,9 @@ export class Asteroid {
       });
     }
     this.crackFlash = 0;
-    const drift = (tier.drift || 0) + driftSpeed;
-    if (drift > 0) {
-      const heading = randRange(0, Math.PI * 2);
-      this.vel = new Vector2D(Math.cos(heading), Math.sin(heading)).mult(drift);
-    } else {
-      this.vel = new Vector2D();
-    }
+    const drift = 8 + randRange(0, 5) + (tier.drift || 0) + driftSpeed;
+    const heading = randRange(0, Math.PI * 2);
+    this.vel = new Vector2D(Math.cos(heading), Math.sin(heading)).mult(drift);
   }
 
   static buildVertices(radius) {
@@ -243,19 +239,17 @@ export class Asteroid {
   update(dt, playfield) {
     this.rotation += this.spin * dt;
     this.crackFlash = Math.max(0, this.crackFlash - dt);
-    if (this.vel && this.vel.magSq() > 0) {
-      this.pos.x += this.vel.x * dt;
-      this.pos.y += this.vel.y * dt;
-      const r = this.radius;
-      if (this.pos.x - r <= 0 || this.pos.x + r >= playfield.width) {
-        this.vel.x *= -1;
-        this.pos.x = Math.max(r, Math.min(playfield.width - r, this.pos.x));
-      }
-      if (this.pos.y - r <= 0 || this.pos.y + r >= playfield.height - 36) {
-        this.vel.y *= -1;
-        this.pos.y = Math.max(r, Math.min(playfield.height - 36 - r, this.pos.y));
-      }
+    if (!this.vel || this.vel.magSq() <= 0) {
+      return;
     }
+    this.pos.x += this.vel.x * dt;
+    this.pos.y += this.vel.y * dt;
+    const W = playfield.width;
+    const H = playfield.height;
+    const spanX = W + this.radius * 2;
+    const spanY = H + this.radius * 2;
+    this.pos.x = ((this.pos.x + this.radius) % spanX + spanX) % spanX - this.radius;
+    this.pos.y = ((this.pos.y + this.radius) % spanY + spanY) % spanY - this.radius;
   }
 
   isDestroyed() {

@@ -13,18 +13,13 @@ import { StorageManager } from '../engine/StorageManager.js';
 import { isStandaloneDisplay } from '../pwa.js';
 
 const HOLD_MS = 2200;
-const TAB_LABELS = {
-  tap: 'Mine',
-  fleet: 'Launch',
-  haul: 'Haul',
-  sector: 'Claim'
-};
 
 const LOOP_BUYS = new Set([
   'tap_damage',
   'tap_rate',
   'asteroid_max',
   'asteroid_spawn_rate',
+  'survey_range',
   'drone_damage',
   'drone_max_count',
   'collector_max',
@@ -56,13 +51,16 @@ export class Shell {
       handle: document.getElementById('sheet-handle'),
       sheetLabel: document.getElementById('sheet-label'),
       nextBuy: document.getElementById('btn-next-buy'),
-      peekJob: document.getElementById('peek-job'),
+      nextBuyLabel: document.getElementById('next-buy-label'),
+      deployHint: document.getElementById('deploy-hint'),
+      deployLabel: document.getElementById('deploy-label'),
       jobBtn: document.getElementById('btn-jobs'),
       jobPip: document.getElementById('job-pip'),
       tap: document.getElementById('tab-tap'),
       fleet: document.getElementById('tab-fleet'),
       haul: document.getElementById('tab-haul'),
       sector: document.getElementById('tab-sector'),
+      scan: document.getElementById('tab-scan'),
       jobs: document.getElementById('jobs-board'),
       sheetBody: document.getElementById('sheet-body'),
       volume: document.getElementById('sfx-volume'),
@@ -93,7 +91,8 @@ export class Shell {
       installHelpClose: document.getElementById('install-help-close'),
       settingsBtn: document.getElementById('btn-settings'),
       settingsModal: document.getElementById('settings-modal'),
-      settingsClose: document.getElementById('settings-close')
+      settingsClose: document.getElementById('settings-close'),
+      speedHud: document.getElementById('btn-speed')
     };
     this._bind();
     this.renderUpgrades(true);
@@ -149,6 +148,7 @@ export class Shell {
     this.els.tap.addEventListener('click', (event) => this._onBuy(event));
     this.els.fleet.addEventListener('click', (event) => this._onBuy(event));
     this.els.haul.addEventListener('click', (event) => this._onBuy(event));
+    this.els.scan.addEventListener('click', (event) => this._onBuy(event));
     this.els.sector.addEventListener('click', (event) => this._onBuy(event) || this._onExpand(event));
     this.els.jobs.addEventListener('click', (event) => {
       if (event.target.closest('[data-jobs-back]')) {
@@ -158,7 +158,6 @@ export class Shell {
       }
       this._onClaim(event);
     });
-    this.els.peekJob.addEventListener('click', (event) => this._onClaim(event));
 
     this.els.jobBtn.addEventListener('click', () => {
       this.sheetOpen = true;
@@ -176,6 +175,15 @@ export class Shell {
     });
     this.els.speed.addEventListener('change', () => {
       this.engine.state.settings.gameSpeed = Number(this.els.speed.value);
+      this._syncSpeedButton();
+      this.engine.markDirty();
+    });
+    this.els.speedHud.addEventListener('click', () => {
+      const current = Number(this.engine.state.settings.gameSpeed) || 1;
+      const next = current >= 2 ? 1 : 2;
+      this.engine.state.settings.gameSpeed = next;
+      this.els.speed.value = String(next);
+      this._syncSpeedButton();
       this.engine.markDirty();
     });
     this.els.haptics.addEventListener('change', () => {
@@ -540,11 +548,7 @@ export class Shell {
     this.els.shop.dataset.open = this.sheetOpen ? '1' : '0';
     this.els.shop.dataset.jobsPanel = this.jobsPanel && this.sheetOpen ? '1' : '0';
     this.els.handle.setAttribute('aria-expanded', this.sheetOpen ? 'true' : 'false');
-    this.els.sheetLabel.textContent = this.sheetOpen
-      ? this.jobsPanel
-        ? 'Upgrades'
-        : TAB_LABELS[this.activeTab] || 'Upgrades'
-      : 'Upgrades';
+    this.els.sheetLabel.textContent = 'Upgrades';
     requestAnimationFrame(() => {
       this.fitCanvas();
       requestAnimationFrame(() => this.fitCanvas());
@@ -555,6 +559,7 @@ export class Shell {
     const tabs = new Set(['tap']);
     if (snap.stats.asteroidsBroken > 0 || snap.tutorialStep > 0) {
       tabs.add('haul');
+      tabs.add('scan');
     }
     if (snap.stats.deposits > 0 || snap.tutorialStep > 1) {
       tabs.add('sector');
@@ -623,7 +628,11 @@ export class Shell {
     }
     const scroll = this.els.sheetBody.scrollTop;
     if (this.engine.tryBuy(button.dataset.buy)) {
-      this.patchUpgrade(button.dataset.buy);
+      if (button.dataset.buy === 'bounce_damp') {
+        this.renderUpgrades(true);
+      } else {
+        this.patchUpgrade(button.dataset.buy);
+      }
       this.patchPeek();
       this.els.sheetBody.scrollTop = scroll;
       this.update();
@@ -661,8 +670,8 @@ export class Shell {
     this.jobsPanel = false;
     if (this.sheetOpen) {
       this.els.shop.dataset.jobsPanel = '0';
-      this.els.sheetLabel.textContent = TAB_LABELS[name] || 'Upgrades';
     }
+    this.els.sheetLabel.textContent = 'Upgrades';
     document.querySelectorAll('.tab').forEach((tab) => {
       tab.classList.toggle('active', tab.dataset.tab === name);
     });
@@ -676,10 +685,19 @@ export class Shell {
     this.els.volume.value = String(s.sfxVolume);
     this.els.volumeValue.textContent = `${Math.round(s.sfxVolume * 100)}%`;
     this.els.speed.value = String(s.gameSpeed);
+    this._syncSpeedButton();
     this.els.haptics.checked = s.haptics !== false;
     this.els.numbers.checked = s.damageNumbers !== false;
     this.els.motion.checked = s.reducedMotion === true;
     this.engine.sound.setVolume(s.sfxVolume);
+  }
+
+  _syncSpeedButton() {
+    const speed = Number(this.engine.state.settings.gameSpeed) || 1;
+    const fast = speed >= 2;
+    this.els.speedHud.textContent = fast ? '2x' : '1x';
+    this.els.speedHud.classList.toggle('on', fast);
+    this.els.speedHud.setAttribute('aria-pressed', fast ? 'true' : 'false');
   }
 
   renderUpgrades(force = false) {
@@ -689,6 +707,7 @@ export class Shell {
     this.els.tap.innerHTML = this._upgradeGroups('tap');
     this.els.fleet.innerHTML = this._upgradeGroups('fleet');
     this.els.haul.innerHTML = this._upgradeGroups('haul');
+    this.els.scan.innerHTML = this._upgradeGroups('scan');
     this._treesBuilt = true;
   }
 
@@ -697,7 +716,13 @@ export class Shell {
     const credits = this.engine.state.credits;
     return groupedUpgrades(tab)
       .map((group) => {
-        const cards = group.items.map((def) => this._cardHtml(def, upgrades, credits)).join('');
+        const cards = group.items
+          .filter((def) => def.id !== 'bank_shot' || isUnlocked(def, upgrades) || (upgrades[def.id] || 0) > 0)
+          .map((def) => this._cardHtml(def, upgrades, credits))
+          .join('');
+        if (!cards) {
+          return '';
+        }
         const blurb = GROUP_BLURBS[group.title]
           ? `<p class="group-blurb">${GROUP_BLURBS[group.title]}</p>`
           : '';
@@ -803,7 +828,7 @@ export class Shell {
           <p class="sector-meta">
             ${sector.name}<br />
             ${sector.lore || ''}<br />
-            ${sector.width}×${sector.height} · Income ×${sector.incomeMult}<br />
+            Income ×${sector.incomeMult}<br />
             ${tiers}<br />
             ${status}
           </p>
@@ -820,6 +845,9 @@ export class Shell {
     let best = null;
     for (const def of UPGRADE_DEFS) {
       if (!revealed.has(def.tab)) {
+        continue;
+      }
+      if (def.id === 'bank_shot' && !isUnlocked(def, snap.upgrades) && !(snap.upgrades[def.id] || 0)) {
         continue;
       }
       if (!isUnlocked(def, snap.upgrades)) {
@@ -846,13 +874,21 @@ export class Shell {
     if (!rec) {
       this.els.nextBuy.dataset.buy = '';
       this.els.nextBuy.disabled = true;
-      this.els.nextBuy.textContent = 'All bought';
+      if (this.els.nextBuyLabel) {
+        this.els.nextBuyLabel.textContent = 'All bought';
+      } else {
+        this.els.nextBuy.textContent = 'All bought';
+      }
       return;
     }
     const can = snap.credits >= rec.cost;
     this.els.nextBuy.dataset.buy = rec.def.id;
     this.els.nextBuy.disabled = !can;
-    this.els.nextBuy.textContent = `${rec.def.name} · $${formatCredits(rec.cost)}`;
+    if (this.els.nextBuyLabel) {
+      this.els.nextBuyLabel.textContent = `${rec.def.name} · $${formatCredits(rec.cost)}`;
+    } else {
+      this.els.nextBuy.textContent = `${rec.def.name} · $${formatCredits(rec.cost)}`;
+    }
   }
 
   update() {
@@ -898,20 +934,24 @@ export class Shell {
     this.els.deploy.classList.toggle('hidden', !unlocked);
     const atCap = snap.drones >= snap.maxDrones;
     const cost = snap.launchCost;
+    const count = `${snap.drones}/${snap.maxDrones}`;
     if (atCap) {
-      this.els.deploy.textContent = `Fleet full (${snap.drones}/${snap.maxDrones})`;
+      this.els.deployHint.textContent = 'drills';
+      this.els.deployLabel.textContent = `${count} full`;
       this.els.deploy.disabled = true;
       return;
     }
     if (snap.manualCooldown > 0) {
-      this.els.deploy.textContent = `Launching (${snap.manualCooldown.toFixed(1)}s)`;
+      this.els.deployHint.textContent = 'drilling';
+      this.els.deployLabel.textContent = `${count} · ${snap.manualCooldown.toFixed(1)}s`;
       this.els.deploy.disabled = true;
       return;
     }
     const auto = snap.autoLaunchEnabled
-      ? ` · AUTO ${Math.max(0, snap.autoDeployTimer).toFixed(1)}s`
+      ? ` · auto ${Math.max(0, snap.autoDeployTimer).toFixed(1)}s`
       : '';
-    this.els.deploy.textContent = `Launch · $${formatCredits(cost)}${auto}`;
+    this.els.deployHint.textContent = 'buy drill';
+    this.els.deployLabel.textContent = `${count} · $${formatCredits(cost)}${auto}`;
     this.els.deploy.disabled = snap.credits < cost;
   }
 
@@ -933,24 +973,17 @@ export class Shell {
 
   _updateLedger(snap) {
     const s = snap.stats;
+    const rebound = (snap.upgrades.bank_shot || 0) > 0;
     this.els.ledger.textContent =
-      `Taps ${s.taps.toLocaleString('en-US')} · Launches ${s.launches} · Lost ${s.probesLost} · Deposits ${s.deposits} · Rocks ${s.asteroidsBroken} · Crits ${s.crits} · Walls ${s.wallBounces || 0} · Banks ${s.bankHits || 0} · Jobs ${snap.jobsCompleted} · Lifetime $${formatCredits(s.lifetimeCredits)}`;
+      `Taps ${s.taps.toLocaleString('en-US')} · Launches ${s.launches} · Lost ${s.probesLost} · Deposits ${s.deposits} · Rocks ${s.asteroidsBroken} · Crits ${s.crits} · Walls ${s.wallBounces || 0}${
+        rebound ? ` · Rebounds ${s.bankHits || 0}` : ''
+      } · Jobs ${snap.jobsCompleted} · Lifetime $${formatCredits(s.lifetimeCredits)}`;
   }
 
   _updateJobs(snap) {
     const readyJobs = snap.jobs.filter((job) => job.progress >= job.amount);
     this.els.jobPip.textContent = String(readyJobs.length);
     this.els.jobBtn.classList.toggle('ready', readyJobs.length > 0);
-    this.els.shop.dataset.jobs = readyJobs.length ? '1' : '0';
-    if (readyJobs.length) {
-      const job = readyJobs[0];
-      const index = snap.jobs.indexOf(job);
-      this.els.peekJob.classList.remove('hidden');
-      this.els.peekJob.innerHTML = `<span>Claim ${job.label}</span><button type="button" data-claim="${index}">+$${formatCredits(job.reward)}</button>`;
-    } else {
-      this.els.peekJob.classList.add('hidden');
-      this.els.peekJob.innerHTML = '';
-    }
     const sig = snap.jobs.map((job) => `${job.defId}:${Math.floor(job.progress)}:${job.amount}:${job.reward}`).join('|');
     if (sig === this._jobsSig) {
       return;
@@ -1015,7 +1048,8 @@ export class Shell {
     } else if (snap.tutorial && snap.tutorial.id === 'probe') {
       spotlight = 'launch';
     }
-    this.els.canvasWrap.dataset.coach = spotlight;
+    this.els.canvasWrap.dataset.coach = spotlight === 'launch' ? '' : spotlight;
+    this.els.app.dataset.coach = spotlight;
     if (!snap.tutorial) {
       this.els.coach.classList.add('hidden');
       return;

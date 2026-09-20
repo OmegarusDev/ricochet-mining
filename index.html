@@ -15,7 +15,7 @@
   <link rel="manifest" href="./manifest.json" />
   <link rel="icon" href="./icons/favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
-  <link rel="stylesheet" href="./css/style.css?v=20" />
+  <link rel="stylesheet" href="./css/style.css?v=24" />
   <style>
     html, body, #app, #canvas-wrap, #game-canvas {
       background: #070d18;
@@ -26,11 +26,13 @@
 <body>
   <div id="app">
     <header id="hud">
-      <div class="hud-cash">$<span id="stat-credits">0</span></div>
-      <div class="hud-rate"><span id="stat-rate">0.0</span>/s</div>
+      <span id="sector-badge">S1 Alpha</span>
       <button id="btn-jobs" type="button" aria-label="Contracts">
         Jobs <span id="job-pip">0</span>
       </button>
+      <div class="hud-cash">$<span id="stat-credits">0</span></div>
+      <div class="hud-rate"><span id="stat-rate">0.0</span>/s</div>
+      <button id="btn-speed" type="button" aria-pressed="false" title="Toggle 2x speed">1x</button>
       <button id="btn-settings" type="button" aria-label="Settings" title="Settings">
         <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
           <path fill="currentColor" d="M19.14 12.94c.04-.31.06-.63.06-.94s-.02-.63-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.03 7.03 0 0 0-1.63-.94l-.36-2.54A.5.5 0 0 0 13.9 2h-3.8a.5.5 0 0 0-.5.42l-.36 2.54c-.59.22-1.14.53-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.8 8.84a.5.5 0 0 0 .12.64L4.95 11.06c-.04.31-.06.63-.06.94s.02.63.06.94L2.92 14.52a.5.5 0 0 0-.12.64l1.92 3.32c.13.23.4.32.6.22l2.39-.96c.49.41 1.04.72 1.63.94l.36 2.54c.05.24.26.42.5.42h3.8c.24 0 .45-.18.5-.42l.36-2.54c.59-.22 1.14-.53 1.63-.94l2.39.96c.23.1.47 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58zM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7z"/>
@@ -45,7 +47,6 @@
           <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/>
         </svg>
       </button>
-      <span id="sector-badge">S1 Alpha</span>
       <div id="event-banner" class="hidden"></div>
       <div id="toast-stack"></div>
       <div id="coach-mark" class="hidden">
@@ -54,23 +55,29 @@
         <button id="coach-skip" type="button">Skip</button>
       </div>
       <div id="tap-meter"><span id="tap-meter-fill"></span></div>
-      <button id="btn-deploy" type="button">Launch · $14</button>
     </div>
 
     <section id="shop" data-open="0">
       <div id="sheet-peek">
+        <button id="btn-deploy" type="button">
+          <span class="peek-hint" id="deploy-hint">buy drill</span>
+          <span id="deploy-label">0/1 · $14</span>
+        </button>
+        <button id="btn-next-buy" type="button" data-buy="">
+          <span class="peek-hint">buy cheapest:</span>
+          <span id="next-buy-label">Buy</span>
+        </button>
         <button id="sheet-handle" type="button" aria-expanded="false" aria-controls="sheet-body" title="Open all upgrades">
           <span class="handle-bar" aria-hidden="true"></span>
           <span class="handle-chevron" aria-hidden="true"></span>
           <span id="sheet-label">Upgrades</span>
         </button>
-        <button id="btn-next-buy" type="button" data-buy="">Buy</button>
-        <div id="peek-job" class="hidden"></div>
       </div>
       <nav id="tabs" aria-label="Shop">
-        <button type="button" class="tab active" data-tab="tap">Mine</button>
-        <button type="button" class="tab hidden" data-tab="fleet">Launch</button>
+        <button type="button" class="tab active" data-tab="tap">Laser</button>
+        <button type="button" class="tab hidden" data-tab="fleet">Drills</button>
         <button type="button" class="tab hidden" data-tab="haul">Haul</button>
+        <button type="button" class="tab hidden" data-tab="scan">Scanners</button>
         <button type="button" class="tab hidden" data-tab="sector">Claim</button>
       </nav>
       <div id="sheet-body">
@@ -78,6 +85,7 @@
         <div id="tab-tap" class="tab-page active"></div>
         <div id="tab-fleet" class="tab-page"></div>
         <div id="tab-haul" class="tab-page"></div>
+        <div id="tab-scan" class="tab-page"></div>
         <div id="tab-sector" class="tab-page"></div>
       </div>
     </section>
@@ -206,6 +214,6 @@
       document.body.appendChild(box);
     });
   </script>
-  <script type="module" src="./js/main.js?v=20"></script>
+  <script type="module" src="./js/main.js?v=24"></script>
 </body>
 </html>

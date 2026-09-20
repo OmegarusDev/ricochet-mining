@@ -9,7 +9,8 @@ import {
   probeSpeed as probeSpeedAt,
   probeSlots,
   haulerSpeed as haulerSpeedAt,
-  launchFee
+  launchFee,
+  fieldSize
 } from '../sim/Tuning.js';
 
 function u(def) {
@@ -24,23 +25,25 @@ function u(def) {
 }
 
 export const TAB_META = [
-  { id: 'tap', label: 'Mine' },
-  { id: 'fleet', label: 'Launch' },
+  { id: 'tap', label: 'Laser' },
+  { id: 'fleet', label: 'Drills' },
   { id: 'haul', label: 'Haul' },
+  { id: 'scan', label: 'Scanners' },
   { id: 'sector', label: 'Claim' }
 ];
 
 export const GROUP_BLURBS = {
-  'Manual Rig': 'Crack rocks with the pick. Ore drops on shatter. Chip Harvest can leak chips as they split.',
-  Specialist: 'Precision toys. Crits, splash, and rhythm once the pick is worth swinging.',
-  Overdrive: 'Late tap kits. Locked until the basic rig is actually upgraded.',
-  Probes: 'Kinetic birds. Walls are free. Rocks trade hull for damage.',
-  Automation: 'Mid-game dispatch. Auto-launch still pays the launch fee.',
-  Ballistics: 'Separate from the pick. Crits and banked wall shots are how a cheap bird punches up.',
+  'Manual Rig': 'Fire bolts from the refinery. Ore drops on shatter. Chip Harvest can leak chips as they split.',
+  Specialist: 'Precision toys. Crits, splash, and rhythm once the laser is worth firing.',
+  Overdrive: 'Late laser kits. Locked until the basic rig is actually upgraded.',
+  Probes: 'Kinetic drills. Walls are free. Rocks trade hull for damage.',
+  Automation: 'Mid-game dispatch. Auto-launch still pays the drill fee.',
+  Ballistics: 'Separate from the laser. Crits for drills.',
   Ordnance: 'Guidance, chains, and twin rails for a real fleet.',
   Crew: 'Haulers you own. Buy more bays, then they keep working the pad.',
   Bay: 'Cargo, pumps, and the dump circle at the bottom of the claim.',
-  Field: 'Starts with two rocks. Claim Density goes to 25. Drift Frequency is how fast the empty holes refill.',
+  Assay: 'Ore pay and shatter yield. Scanning the belt is on Scanners.',
+  Survey: 'How many rocks, how fast they refill, and how large the claim square is.',
   Logistics: 'Return burns, compression, and pad magnetism.',
   'Company Charter': 'Survives expansion. Buy these before you warp.'
 };
@@ -48,25 +51,25 @@ export const GROUP_BLURBS = {
 export const UPGRADE_DEFS = [
   u({
     id: 'tap_damage',
-    name: 'Rock Pick',
+    name: 'Laser Emitter',
     tab: 'tap',
     group: 'Manual Rig',
     baseCost: 8,
     scale: 1.24,
     maxLevel: 80,
     effect: (level) => tapDamageAt(level),
-    describe: (level) => `Tap damage: ${tapDamageAt(level)}`
+    describe: (level) => `Laser damage: ${tapDamageAt(level)}`
   }),
   u({
     id: 'tap_rate',
-    name: 'Drill Cadence',
+    name: 'Laser Cadence',
     tab: 'tap',
     group: 'Manual Rig',
     baseCost: 14,
     scale: 1.3,
     maxLevel: 30,
     effect: (level) => tapIntervalAt(level),
-    describe: (level) => `Tap interval: ${tapIntervalAt(level).toFixed(2)} s`
+    describe: (level) => `Shot interval: ${tapIntervalAt(level).toFixed(2)} s`
   }),
   u({
     id: 'tap_radius',
@@ -142,7 +145,7 @@ export const UPGRADE_DEFS = [
     scale: 1.37,
     maxLevel: 16,
     effect: (level) => 1 + level * 0.07,
-    describe: (level) => `Tap damage ×${(1 + level * 0.07).toFixed(2)} vs rock HP`
+    describe: (level) => `Laser damage ×${(1 + level * 0.07).toFixed(2)} vs rock HP`
   }),
   u({
     id: 'tap_lucky',
@@ -161,7 +164,7 @@ export const UPGRADE_DEFS = [
   }),
   u({
     id: 'tap_overcharge',
-    name: 'Capacitor Pick',
+    name: 'Capacitor Cell',
     tab: 'tap',
     group: 'Overdrive',
     requires: { id: 'tap_rate', level: 4 },
@@ -170,7 +173,7 @@ export const UPGRADE_DEFS = [
     maxLevel: 12,
     effect: (level) => (level <= 0 ? 0 : Math.max(4, 11 - level)),
     describe: (level) =>
-      level <= 0 ? 'Every Nth tap detonates' : `Overcharge every ${Math.max(4, 11 - level)} taps (×3.1)`
+      level <= 0 ? 'Every Nth shot detonates' : `Overcharge every ${Math.max(4, 11 - level)} shots (×3.1)`
   }),
   u({
     id: 'tap_pierce',
@@ -199,14 +202,14 @@ export const UPGRADE_DEFS = [
 
   u({
     id: 'drone_max_count',
-    name: 'Max Probe Fleet',
+    name: 'Max Drill Fleet',
     tab: 'fleet',
     group: 'Probes',
     baseCost: 48,
     scale: 1.88,
     maxLevel: TUNING.probeCap - 1,
     effect: (level) => probeSlots(level),
-    describe: (level) => `Max probes: ${probeSlots(level)}`
+    describe: (level) => `Max drills: ${probeSlots(level)}`
   }),
   u({
     id: 'drone_damage',
@@ -227,8 +230,8 @@ export const UPGRADE_DEFS = [
     baseCost: 20,
     scale: 1.27,
     maxLevel: 40,
-    effect: (level) => 18 + level * 15,
-    describe: (level) => `Max HP: ${18 + level * 15}`
+    effect: (level) => 20 + level * 15,
+    describe: (level) => `Max HP: ${20 + level * 15}`
   }),
   u({
     id: 'drone_speed',
@@ -243,14 +246,14 @@ export const UPGRADE_DEFS = [
   }),
   u({
     id: 'launch_discount',
-    name: 'Bulk Launch Contract',
+    name: 'Bulk Drill Contract',
     tab: 'fleet',
     group: 'Probes',
     baseCost: 40,
     scale: 1.38,
     maxLevel: 18,
     effect: (level) => Math.min(0.72, level * 0.04),
-    describe: (level) => `Launch cost −${(Math.min(0.72, level * 0.04) * 100).toFixed(0)}%`
+    describe: (level) => `Drill cost −${(Math.min(0.72, level * 0.04) * 100).toFixed(0)}%`
   }),
   u({
     id: 'drone_recoil',
@@ -306,7 +309,7 @@ export const UPGRADE_DEFS = [
   }),
   u({
     id: 'bank_shot',
-    name: 'Bank Shot',
+    name: 'Rebound',
     tab: 'fleet',
     group: 'Ballistics',
     requires: { id: 'bounce_damp', level: 1 },
@@ -316,7 +319,7 @@ export const UPGRADE_DEFS = [
     effect: (level) => (level <= 0 ? 0 : Math.min(0.92, 0.18 + (level - 1) * 0.056)),
     describe: (level) =>
       level <= 0
-        ? 'Wall bounces light the bird — buy this to make that glow hit harder'
+        ? 'After a wall bounce, the next rock hit hits harder'
         : `After a wall: +${(Math.min(0.92, 0.18 + (level - 1) * 0.056) * 100).toFixed(0)}% damage for 0.5s`
   }),
   u({
@@ -331,7 +334,7 @@ export const UPGRADE_DEFS = [
     effect: (level) => (level <= 0 ? 0 : Math.max(0.4, 11 - (level - 1) * 0.65)),
     describe: (level) =>
       level <= 0
-        ? 'Locked until Max Probe Fleet 3 — still pays each launch'
+        ? 'Locked until Max Drill Fleet 3 — still pays each launch'
         : `Auto-launch every ${Math.max(0.4, 11 - (level - 1) * 0.65).toFixed(2)} s (pays fee)`
   }),
   u({
@@ -344,7 +347,7 @@ export const UPGRADE_DEFS = [
     scale: 1.36,
     maxLevel: 12,
     effect: (level) => Math.max(0.12, 0.62 - level * 0.04),
-    describe: (level) => `Manual launch delay: ${Math.max(0.12, 0.62 - level * 0.04).toFixed(2)} s`
+    describe: (level) => `Manual drill delay: ${Math.max(0.12, 0.62 - level * 0.04).toFixed(2)} s`
   }),
   u({
     id: 'dual_launch',
@@ -356,7 +359,7 @@ export const UPGRADE_DEFS = [
     scale: 1.48,
     maxLevel: 10,
     effect: (level) => Math.min(0.9, level * 0.09),
-    describe: (level) => `Second probe: ${(Math.min(0.9, level * 0.09) * 100).toFixed(0)}% (half fee)`
+    describe: (level) => `Second drill: ${(Math.min(0.9, level * 0.09) * 100).toFixed(0)}% (half fee)`
   }),
   u({
     id: 'scrap_rebate',
@@ -416,7 +419,7 @@ export const UPGRADE_DEFS = [
     scale: 1.34,
     maxLevel: 12,
     effect: (level) => 8 + level * 0.45,
-    describe: (level) => `Probe radius: ${(8 + level * 0.45).toFixed(1)} px`
+    describe: (level) => `Drill radius: ${(8 + level * 0.45).toFixed(1)} px`
   }),
 
   u({
@@ -545,32 +548,10 @@ export const UPGRADE_DEFS = [
     describe: (level) => `Magnet near pad: +${Math.round(level * 16)}%`
   }),
   u({
-    id: 'asteroid_max',
-    name: 'Claim Density',
-    tab: 'haul',
-    group: 'Field',
-    baseCost: TUNING.densityBaseCost,
-    scale: TUNING.densityScale,
-    maxLevel: TUNING.fieldCap - TUNING.startRocks,
-    effect: (level) => fieldRocks(level),
-    describe: (level) => `Max rocks: ${fieldRocks(level)} / ${TUNING.fieldCap}`
-  }),
-  u({
-    id: 'asteroid_spawn_rate',
-    name: 'Drift Frequency',
-    tab: 'haul',
-    group: 'Field',
-    baseCost: TUNING.spawnBaseCost,
-    scale: TUNING.spawnScale,
-    maxLevel: TUNING.spawnMaxLevel,
-    effect: (level) => spawnDelay(level),
-    describe: (level) => `Spawn delay: ${spawnDelay(level).toFixed(2)} s`
-  }),
-  u({
     id: 'ore_value_mult',
     name: 'Refining Process',
     tab: 'haul',
-    group: 'Field',
+    group: 'Assay',
     baseCost: 48,
     scale: 1.38,
     maxLevel: 80,
@@ -581,7 +562,7 @@ export const UPGRADE_DEFS = [
     id: 'rich_veins',
     name: 'Rich Veins',
     tab: 'haul',
-    group: 'Field',
+    group: 'Assay',
     baseCost: 68,
     scale: 1.36,
     maxLevel: 15,
@@ -592,7 +573,7 @@ export const UPGRADE_DEFS = [
     id: 'rare_shift',
     name: 'Prospecting Array',
     tab: 'haul',
-    group: 'Field',
+    group: 'Assay',
     baseCost: 85,
     scale: 1.42,
     maxLevel: 10,
@@ -603,7 +584,7 @@ export const UPGRADE_DEFS = [
     id: 'chip_split',
     name: 'Fracture Plan',
     tab: 'haul',
-    group: 'Field',
+    group: 'Assay',
     requires: { id: 'rich_veins', level: 2 },
     baseCost: 170,
     scale: 1.38,
@@ -612,16 +593,50 @@ export const UPGRADE_DEFS = [
     describe: (level) => `Break chips: ×${(1 + level * 0.12).toFixed(2)}`
   }),
   u({
+    id: 'asteroid_max',
+    name: 'Claim Density',
+    tab: 'scan',
+    group: 'Survey',
+    baseCost: TUNING.densityBaseCost,
+    scale: TUNING.densityScale,
+    maxLevel: TUNING.fieldCap - TUNING.startRocks,
+    effect: (level) => fieldRocks(level),
+    describe: (level) => `Max rocks: ${fieldRocks(level)} / ${TUNING.fieldCap}`
+  }),
+  u({
+    id: 'asteroid_spawn_rate',
+    name: 'Drift Frequency',
+    tab: 'scan',
+    group: 'Survey',
+    baseCost: TUNING.spawnBaseCost,
+    scale: TUNING.spawnScale,
+    maxLevel: TUNING.spawnMaxLevel,
+    effect: (level) => spawnDelay(level),
+    describe: (level) => `Spawn delay: ${spawnDelay(level).toFixed(2)} s`
+  }),
+  u({
+    id: 'survey_range',
+    name: 'Survey Grid',
+    tab: 'scan',
+    group: 'Survey',
+    baseCost: TUNING.surveyBaseCost,
+    scale: TUNING.surveyScale,
+    maxLevel: TUNING.surveyMaxLevel,
+    effect: (level) => fieldSize(level),
+    describe: (level) => `Claim size: ${fieldSize(level)}×${fieldSize(level)}`
+  }),
+  u({
     id: 'rock_drift',
     name: 'Unstable Belt',
-    tab: 'haul',
-    group: 'Field',
+    tab: 'scan',
+    group: 'Survey',
     requires: { id: 'asteroid_max', level: 3 },
     baseCost: 150,
     scale: 1.4,
     maxLevel: 8,
     effect: (level) => level * 12,
-    describe: (level) => (level <= 0 ? 'Rocks sit still' : `Rock drift: ${level * 12} px/s`)
+    describe: (level) =>
+      level <= 0 ? 'Base drift only' : `Extra drift: +${level * 12} px/s`
   }),
 
   u({
@@ -646,7 +661,7 @@ export const UPGRADE_DEFS = [
     scale: 1.48,
     maxLevel: 15,
     effect: (level) => level * 2,
-    describe: (level) => `Permanent tap damage +${level * 2}`
+    describe: (level) => `Permanent laser damage +${level * 2}`
   }),
   u({
     id: 'charter_hold',
@@ -1061,7 +1076,8 @@ export function derivedStats(upgrades, sectorLevel, event = null) {
     droneSpeed:
       UPGRADE_BY_ID.drone_speed.effect(lv('drone_speed')) +
       UPGRADE_BY_ID.veteran_engines.effect(lv('veteran_engines')),
-    launchCost: launchFee(lv('drone_max_count'), discount),
+    launchDiscount: discount,
+    launchCost: launchFee(0, discount),
     autoLaunchEnabled: autoLevel > 0,
     autoDeployInterval: UPGRADE_BY_ID.auto_launch.effect(autoLevel),
     recoilFrac: UPGRADE_BY_ID.drone_recoil.effect(lv('drone_recoil')),
@@ -1079,7 +1095,8 @@ export function derivedStats(upgrades, sectorLevel, event = null) {
         probeCritEvent
     ),
     probeCritMult: UPGRADE_BY_ID.probe_crit_dmg.effect(lv('probe_crit_dmg')),
-    bankShot: UPGRADE_BY_ID.bank_shot.effect(lv('bank_shot')) + bankEvent,
+    bankShot:
+      lv('bank_shot') > 0 ? UPGRADE_BY_ID.bank_shot.effect(lv('bank_shot')) + bankEvent : 0,
     manualLaunchDelay: UPGRADE_BY_ID.burst_launch.effect(lv('burst_launch')),
     tapDamage:
       UPGRADE_BY_ID.tap_damage.effect(lv('tap_damage')) +
@@ -1138,8 +1155,8 @@ export function derivedStats(upgrades, sectorLevel, event = null) {
     offlineEff: UPGRADE_BY_ID.offline_ops.effect(lv('offline_ops')),
     sectorMult: sector.incomeMult,
     hpMult: sectorHpMult(sector.incomeMult),
-    width: sector.width,
-    height: sector.height,
+    width: fieldSize(lv('survey_range')),
+    height: fieldSize(lv('survey_range')),
     sector,
     eventId
   };
@@ -1182,6 +1199,10 @@ export function applyTuningToUpgrades() {
   spawn.maxLevel = TUNING.spawnMaxLevel;
   const fleet = UPGRADE_BY_ID.drone_max_count;
   fleet.maxLevel = Math.max(1, TUNING.probeCap - 1);
+  const survey = UPGRADE_BY_ID.survey_range;
+  survey.baseCost = TUNING.surveyBaseCost;
+  survey.scale = TUNING.surveyScale;
+  survey.maxLevel = TUNING.surveyMaxLevel;
 }
 
 export function sectorUnlockNeed(sector, stats) {

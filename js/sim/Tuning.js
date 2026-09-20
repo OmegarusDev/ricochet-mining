@@ -7,7 +7,7 @@
  */
 export const TUNING = {
   fieldCap: 25,
-  startRocks: 2,
+  startRocks: 1,
   densityBaseCost: 24,
   densityScale: 1.48,
 
@@ -26,13 +26,20 @@ export const TUNING = {
   tapIntervalFloor: 0.14,
   tapIntervalPerLevel: 0.058,
 
-  probeCap: 14,
+  probeCap: 20,
   probeDamageBase: 3,
   probeDamageGrowth: 1.22,
-  probeSpeedStart: 34,
+  probeSpeedStart: 30,
   probeSpeedPerLevel: 13,
   startLaunchCost: 14,
   launchCostPerSlot: 7,
+
+  surveyStart: 400,
+  surveyPerLevel: 80,
+  surveyCap: 1480,
+  surveyMaxLevel: 14,
+  surveyBaseCost: 55,
+  surveyScale: 1.42,
 
   haulerSpeedStart: 14,
   haulerSpeedPerLevel: 11,
@@ -81,7 +88,14 @@ export function haulerSpeed(level) {
   return TUNING.haulerSpeedStart + Math.max(0, level) * TUNING.haulerSpeedPerLevel;
 }
 
-export function launchFee(slotLevel, discount) {
-  const raw = TUNING.startLaunchCost + slotLevel * TUNING.launchCostPerSlot;
+export function fieldSize(level) {
+  return Math.min(
+    TUNING.surveyCap,
+    TUNING.surveyStart + Math.max(0, level) * TUNING.surveyPerLevel
+  );
+}
+
+export function launchFee(liveCount, discount) {
+  const raw = TUNING.startLaunchCost + Math.max(0, liveCount) * TUNING.launchCostPerSlot;
   return Math.max(5, Math.floor(raw * (1 - (discount || 0))));
 }

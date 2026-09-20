@@ -2,7 +2,7 @@ export const TUTORIAL_STEPS = [
   {
     id: 'tap',
     title: 'Shatter a rock',
-    body: 'Tap until it splits.'
+    body: 'Tap a rock. A bolt fires from the pad.'
   },
   {
     id: 'haul',
@@ -11,20 +11,20 @@ export const TUTORIAL_STEPS = [
   },
   {
     id: 'upgrade',
-    title: 'Buy a pick',
+    title: 'Buy a laser',
     body: 'The sheet has your next buy.'
   },
   {
     id: 'probe',
-    title: 'Launch a bird',
-    body: 'Walls charge it. Rocks trade hull.'
+    title: 'Send a drill',
+    body: 'Rocks trade hull. Walls do not.'
   }
 ];
 
 export const JOB_DEFS = [
   {
     id: 'taps',
-    verb: 'Land taps',
+    verb: 'Fire lasers',
     stat: 'taps',
     amounts: [12, 30, 70, 140, 260],
     reward: (n, sector) => 6 + n * 0.55 * sector
@@ -45,7 +45,7 @@ export const JOB_DEFS = [
   },
   {
     id: 'launches',
-    verb: 'Launch probes',
+    verb: 'Launch drills',
     stat: 'launches',
     amounts: [1, 3, 6, 12, 20],
     reward: (n, sector) => 14 + n * 8 * sector
@@ -80,14 +80,14 @@ export const JOB_DEFS = [
   },
   {
     id: 'walls',
-    verb: 'Bank a wall',
+    verb: 'Bounce a wall',
     stat: 'wallBounces',
     amounts: [4, 12, 28, 60, 110],
     reward: (n, sector) => 12 + n * 1.6 * sector
   },
   {
     id: 'banks',
-    verb: 'Land banked hits',
+    verb: 'Land rebounds',
     stat: 'bankHits',
     amounts: [2, 6, 16, 36, 70],
     reward: (n, sector) => 18 + n * 2.8 * sector
@@ -140,7 +140,7 @@ export const EVENT_DEFS = [
   {
     id: 'cushion',
     name: 'Cushion fields',
-    blurb: 'Walls go soft. Bank shots hit like a truck.',
+    blurb: 'Walls go soft. Rebound hits land harder.',
     duration: 32,
     color: '#fde68a'
   },
@@ -158,7 +158,7 @@ export const MILESTONES = [
   { id: 'first_pay', name: 'Payroll', test: (s) => s.deposits >= 1, reward: 10 },
   { id: 'first_buy', name: 'Tooling', test: (s) => s.upgradesBought >= 1, reward: 14 },
   { id: 'first_bird', name: 'First bird', test: (s) => s.launches >= 1, reward: 22 },
-  { id: 'first_bank', name: 'Banked', test: (s) => s.bankHits >= 1, reward: 28 },
+  { id: 'first_bank', name: 'Rebound', test: (s) => s.bankHits >= 1, reward: 28 },
   { id: 'rocks_10', name: 'Surveyor', test: (s) => s.asteroidsBroken >= 10, reward: 30 },
   { id: 'taps_80', name: 'Calloused', test: (s) => s.taps >= 80, reward: 45 },
   { id: 'dump_20', name: 'Pad rat', test: (s) => s.deposits >= 20, reward: 55 },
@@ -186,8 +186,12 @@ export function jobLabel(job) {
 }
 
 function jobSeed(state, avoid) {
-  const pool = JOB_DEFS.filter((def) => !avoid.includes(def.id));
-  const def = (pool.length ? pool : JOB_DEFS)[Math.floor(Math.random() * (pool.length || JOB_DEFS.length))];
+  const rebound = (state.upgrades?.bank_shot || 0) > 0;
+  const pool = JOB_DEFS.filter((def) => !avoid.includes(def.id) && (rebound || def.id !== 'banks'));
+  const source = pool.length
+    ? pool
+    : JOB_DEFS.filter((item) => rebound || item.id !== 'banks');
+  const def = source[Math.floor(Math.random() * source.length)];
   const tier = Math.min(
     def.amounts.length - 1,
     Math.max(0, (state.sectorLevel || 1) - 1 + (state.jobs?.completed > 12 ? 1 : 0))
@@ -207,7 +211,8 @@ export function fillJobs(state) {
   if (!state.jobs) {
     state.jobs = emptyJobs();
   }
-  const slots = state.jobs.slots.filter(Boolean);
+  const rebound = (state.upgrades?.bank_shot || 0) > 0;
+  const slots = state.jobs.slots.filter((job) => job && (rebound || job.defId !== 'banks'));
   while (slots.length < 3) {
     const avoid = slots.map((job) => job.defId);
     slots.push(jobSeed(state, avoid));
@@ -225,8 +230,10 @@ export function jobProgress(job, stats) {
   return Math.max(0, Math.min(job.amount, current - job.baseline));
 }
 
-export function rollEvent() {
-  const def = EVENT_DEFS[Math.floor(Math.random() * EVENT_DEFS.length)];
+export function rollEvent(state) {
+  const rebound = (state?.upgrades?.bank_shot || 0) > 0;
+  const pool = EVENT_DEFS.filter((def) => rebound || def.id !== 'cushion');
+  const def = pool[Math.floor(Math.random() * pool.length)];
   return {
     id: def.id,
     name: def.name,

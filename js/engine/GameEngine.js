@@ -12,7 +12,7 @@ import { Asteroid } from '../entities/Asteroid.js';
 import { launchMiningDrone } from '../entities/MiningDrone.js';
 import { CollectorDrone } from '../entities/CollectorDrone.js';
 import { spawnOreBurst, spawnSalvageChip, spawnTapChip, releaseOre } from '../entities/OreParticle.js';
-import { TUNING } from '../sim/Tuning.js';
+import { TUNING, launchFee } from '../sim/Tuning.js';
 import { Renderer } from '../view/Renderer.js';
 import {
   MILESTONES,
@@ -36,6 +36,7 @@ export class GameEngine {
     this.floatingTexts = [];
     this.ripples = [];
     this.sparks = [];
+    this.bolts = [];
     this.toasts = [];
     this.stars = [];
     this._sparkPool = [];
@@ -73,6 +74,10 @@ export class GameEngine {
 
   fieldCap() {
     return Math.min(TUNING.fieldCap, this.stats.maxAsteroids);
+  }
+
+  launchCostNow() {
+    return launchFee(this.drones.length, this.stats.launchDiscount);
   }
 
   depot() {
@@ -278,6 +283,7 @@ export class GameEngine {
     this._updateFloating(dt);
     this._updateRipples(dt);
     this._updateSparks(dt);
+    this._updateBolts(dt);
     this._updateToasts(dt);
     this._tickEvent(dt);
     this._updateRate();
@@ -338,7 +344,6 @@ export class GameEngine {
       .sort((a, b) => a.d - b.d);
     const target = ranked[0] && ranked[0].d < this.stats.tapRadius ? ranked[0].asteroid : null;
     if (!target) {
-      this.ripples.push({ x: point.x, y: point.y, age: 0, life: 0.28, miss: true });
       return false;
     }
 
@@ -369,25 +374,18 @@ export class GameEngine {
       this.state.stats.crits += 1;
     }
     damage = Math.max(1, Math.floor(damage));
-    this._strikeAsteroid(target, damage, point, { tap: true, crit, over });
-
-    if (this.stats.multiHit > 0 && ranked[1] && ranked[1].d < this.stats.tapRadius + 18) {
-      const extra = Math.max(1, Math.floor(damage * this.stats.multiHit));
-      this._strikeAsteroid(ranked[1].asteroid, extra, ranked[1].asteroid.pos, { tap: true, splash: true });
-    }
-
-    if (this.stats.tapSplash > 0) {
-      for (const other of this.asteroids) {
-        if (other === target || other.isDestroyed()) {
-          continue;
-        }
-        if (other.pos.dist(target.pos) <= this.stats.splashRadius) {
-          const splash = Math.max(1, Math.floor(damage * this.stats.tapSplash));
-          this._strikeAsteroid(other, splash, other.pos, { tap: true, splash: true });
-        }
-      }
-    }
-
+    const second =
+      this.stats.multiHit > 0 && ranked[1] && ranked[1].d < this.stats.tapRadius + 18
+        ? ranked[1].asteroid
+        : null;
+    this._spawnLaserBolt(target.pos, {
+      targetId: target.id,
+      damage,
+      crit,
+      over,
+      secondId: second ? second.id : null,
+      extra: second ? Math.max(1, Math.floor(damage * this.stats.multiHit)) : 0
+    });
     this.sound.playTap(crit || over);
     if (this.state.settings.haptics && navigator.vibrate) {
       navigator.vibrate(crit || over ? 18 : 8);
@@ -400,6 +398,86 @@ export class GameEngine {
     return true;
   }
 
+  _spawnLaserBolt(dest, payload) {
+    const depot = this.depot();
+    const ox = depot.x;
+    const oy = depot.y - depot.h / 2 - 4;
+    const dx = dest.x - ox;
+    const dy = dest.y - oy;
+    const dist = Math.hypot(dx, dy) || 1;
+    const fast = this.state.settings.reducedMotion;
+    const speed = fast ? 6000 : 1280;
+    this.bolts.push({
+      x: ox,
+      y: oy,
+      ox,
+      oy,
+      tx: dest.x,
+      ty: dest.y,
+      angle: Math.atan2(dy, dx),
+      t: 0,
+      dur: Math.min(fast ? 0.05 : 0.42, dist / speed),
+      payload,
+      miss: false
+    });
+  }
+
+  _updateBolts(dt) {
+    const live = [];
+    for (const bolt of this.bolts) {
+      if (bolt.payload) {
+        const homing = this.asteroids.find((rock) => rock.id === bolt.payload.targetId && !rock.isDestroyed());
+        if (homing) {
+          bolt.tx = homing.pos.x;
+          bolt.ty = homing.pos.y;
+          bolt.angle = Math.atan2(bolt.ty - bolt.oy, bolt.tx - bolt.ox);
+        }
+      }
+      bolt.t += dt;
+      const u = Math.min(1, bolt.dur <= 0 ? 1 : bolt.t / bolt.dur);
+      bolt.x = bolt.ox + (bolt.tx - bolt.ox) * u;
+      bolt.y = bolt.oy + (bolt.ty - bolt.oy) * u;
+      if (u < 1) {
+        live.push(bolt);
+        continue;
+      }
+      this._resolveLaserBolt(bolt);
+    }
+    this.bolts = live;
+  }
+
+  _resolveLaserBolt(bolt) {
+    if (!bolt.payload) {
+      return;
+    }
+    const { targetId, damage, crit, over, secondId, extra } = bolt.payload;
+    const target = this.asteroids.find((rock) => rock.id === targetId && !rock.isDestroyed());
+    if (!target) {
+      this._spawnSparks(bolt.tx, bolt.ty, '#f87171', 5);
+      return;
+    }
+    this._strikeAsteroid(target, damage, target.pos, { tap: true, crit, over });
+    if (extra > 0 && secondId) {
+      const second = this.asteroids.find((rock) => rock.id === secondId && !rock.isDestroyed());
+      if (second) {
+        this._strikeAsteroid(second, extra, second.pos, { tap: true, splash: true });
+      }
+    }
+    if (this.stats.tapSplash > 0) {
+      for (const other of this.asteroids) {
+        if (other === target || other.isDestroyed()) {
+          continue;
+        }
+        if (other.pos.dist(target.pos) <= this.stats.splashRadius) {
+          const splash = Math.max(1, Math.floor(damage * this.stats.tapSplash));
+          this._strikeAsteroid(other, splash, other.pos, { tap: true, splash: true });
+        }
+      }
+    }
+    this.depotPulse = Math.max(this.depotPulse, 0.18);
+    this.markDirty();
+  }
+
   deployDrone(force = false) {
     if (this.drones.length >= this.stats.maxDrones) {
       return false;
@@ -407,7 +485,7 @@ export class GameEngine {
     if (!force && this.manualCooldown > 0) {
       return false;
     }
-    const cost = this.stats.launchCost;
+    const cost = this.launchCostNow();
     if (this.state.credits < cost) {
       this.sound.playDeny();
       return false;
@@ -571,7 +649,7 @@ export class GameEngine {
       sector: this.stats.sector,
       tapCooldown: this.tapCooldown,
       tapInterval: this.stats.tapInterval,
-      launchCost: this.stats.launchCost,
+      launchCost: this.launchCostNow(),
       autoLaunchEnabled: this.stats.autoLaunchEnabled,
       autoDeployTimer: this.autoDeployTimer,
       autoDeployInterval: this.stats.autoDeployInterval,
@@ -697,7 +775,7 @@ export class GameEngine {
     if (this.drones.length >= this.stats.maxDrones) {
       return;
     }
-    if (this.autoDeployTimer <= 0 && this.state.credits >= this.stats.launchCost) {
+    if (this.autoDeployTimer <= 0 && this.state.credits >= this.launchCostNow()) {
       this.deployDrone(true);
       this.autoDeployTimer = this.stats.autoDeployInterval;
     }
@@ -809,14 +887,16 @@ export class GameEngine {
       return;
     }
     drone.bounceLock = 0.085;
-    drone.bankT = 0.5;
     drone.bounces += 1;
     this.state.stats.wallBounces += 1;
-    this._spawnSparks(sparkX, sparkY, '#fbbf24', 8);
+    if (this.stats.bankShot > 0) {
+      drone.bankT = 0.5;
+    }
+    this._spawnSparks(sparkX, sparkY, this.stats.bankShot > 0 ? '#fbbf24' : '#7dd3fc', 8);
     this.sound.playBounce();
-    if (!this.state.flags.seenBank) {
+    if (this.stats.bankShot > 0 && !this.state.flags.seenBank) {
       this.state.flags.seenBank = true;
-      this.pushToast(this.stats.bankShot > 0 ? 'Charged' : 'Walls are free');
+      this.pushToast('Rebound');
     }
     this._checkMilestones();
   }
@@ -902,7 +982,8 @@ export class GameEngine {
         continue;
       }
       this.state.stats.probesLost += 1;
-      const rebate = this.stats.launchCost * this.stats.scrapRebate;
+      const liveCount = this.drones.filter((item) => !item.isDestroyed()).length;
+      const rebate = launchFee(liveCount, this.stats.launchDiscount) * this.stats.scrapRebate;
       if (rebate > 0) {
         this.state.credits += rebate;
         this.state.stats.lifetimeCredits += rebate;
@@ -911,7 +992,7 @@ export class GameEngine {
       this._absorbChip(
         spawnSalvageChip(
           drone.pos,
-          Math.max(0.4, this.stats.launchCost * 0.08 * this.stats.oreValueMult)
+          Math.max(0.4, launchFee(liveCount, this.stats.launchDiscount) * 0.08 * this.stats.oreValueMult)
         )
       );
       this.sound.playDeny();
@@ -997,7 +1078,7 @@ export class GameEngine {
     if (this.state.jobs.nextEvent <= 0) {
       this.state.jobs.nextEvent = 75 + Math.random() * 55;
       if (this.state.stats.taps >= 8 && Math.random() < 0.62) {
-        this.event = rollEvent();
+        this.event = rollEvent(this.state);
         this.refreshStats();
         this.pushToast(this.event.name);
         this.sound.playEvent();
