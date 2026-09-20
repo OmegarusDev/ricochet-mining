@@ -73,7 +73,7 @@ export const JOB_DEFS = [
   },
   {
     id: 'salvage',
-    verb: 'Scrap probes',
+    verb: 'Scrap drills',
     stat: 'probesLost',
     amounts: [1, 3, 7, 14, 24],
     reward: (n, sector) => 16 + n * 6 * sector

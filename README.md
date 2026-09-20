@@ -7,7 +7,7 @@
 
 # Ricochet Mining Co.
 
-A pocket asteroid claim. Tap rocks until they split, haul chips to the REFINERY pad, then spend cash on the next upgrade — or launch a probe that banks walls for free and trades hull with rocks.
+A pocket asteroid claim. Laser rocks until they split, haul chips to the REFINERY pad, then spend cash on the next upgrade — or buy a drill that bounces walls for free and trades hull with rocks.
 
 ## Play
 
@@ -24,15 +24,19 @@ Install from the live Pages site — not from this README. On Android Chrome tha
 
 If an older home-screen icon still shows the clock, remove it and install again after this build is live. Do not stack the HTML Fullscreen API on top of the installed app — that is what brought the status bar back on other titles.
 
-## Loop (four verbs)
+## Loop
 
-**Mine** — tap until a rock shatters. Ore drops on the break. **Launch** — paid kinetic birds; walls charge them (BANKED), rocks exchange HP. **Haul** — gold drones dump at the pad; unclaimed chips are dim. **Claim** — density, spawn, and sector warps. Jobs pay from the HUD pip, not Settings.
+**Laser** — tap a rock. A red bolt fires from the pad; ore drops when the rock shatters. **Drills** — paid kinetic ships. Launch cost is `$14 + $7 × drills already in play`. Walls bounce them without hull loss. Rocks trade HP. **Rebound** (Drills tab, after Elastic Plating) is hidden until it unlocks: then a wall bounce charges the next rock hit. **Haul** — gold haulers dump at the pad; unclaimed chips are dim. **Scanners** — rock cap, spawn rate, and Survey Grid (claim square size). **Claim** — sector warps. Jobs pay from the HUD **Jobs** pip, not Settings.
 
-A new player does not need this file. Field tips cover shatter → pad → peek buy → launch. The claim is a fixed square from the sector, not the screen; drag to pan, pinch or scroll to zoom, and the top-left fit control lines the walls up with the narrow screen edges.
+A new player does not need this file. Field tips cover shatter → pad → peek buy → launch. With the sheet collapsed, tips sit under the claim. With Upgrades open they overlay the field so the claim stays large.
+
+The claim is a square from **Survey Grid**, not the screen. Drag to pan, pinch or scroll to zoom, and the top-left fit control lines the walls up with the narrow screen edges.
+
+HUD left to right: Jobs, sector, cash, $/s, 2x, settings. Peek bar: Buy Drill (live count · cost), cheapest upgrade, Upgrades.
 
 ## Tuning
 
-Knobs live in [`js/sim/Tuning.js`](js/sim/Tuning.js). [`balance.html`](balance.html) is the greedy yardstick (stops at sector 8). No bundler — vanilla ES6 modules, relative imports.
+Knobs live in [`js/sim/Tuning.js`](js/sim/Tuning.js). [`balance.html`](balance.html) is the greedy yardstick (stops at sector 8). No bundler — vanilla ES6 modules, relative imports. Saves are `localStorage` key `RICOCHET_MINING_SAVE_V4`.
 
 ## Run locally
 

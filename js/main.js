@@ -1,6 +1,6 @@
 import { StorageManager } from './engine/StorageManager.js';
 import { SoundEngine } from './audio/SoundEngine.js';
-import { GameEngine } from './world/Engine.js';
+import { GameEngine } from './engine/GameEngine.js';
 import { Shell } from './ui/Shell.js';
 import { registerPwa } from './pwa.js';
 

@@ -61,8 +61,6 @@ export class GameEngine {
     this.event = null;
     this.flash = 0;
     this.hint = !state.flags?.tapped;
-    state.stats.wallBounces = state.stats.wallBounces || 0;
-    state.stats.bankHits = state.stats.bankHits || 0;
     fillJobs(this.state);
     this.stats = derivedStats(state.upgrades, state.sectorLevel, this.event);
     this.playfield = { width: this.stats.width, height: this.stats.height };
@@ -151,7 +149,6 @@ export class GameEngine {
     this.view.cssH = displayHeight;
     this.canvas.style.width = '100%';
     this.canvas.style.height = '100%';
-    this.ctx = this.canvas.getContext('2d');
     const wasFitted = this.isViewFitted(prevScale, prevCx, prevCy, prevW, prevH);
     const sizeJump = Math.max(Math.abs(displayWidth - (prevW || 0)), Math.abs(displayHeight - (prevH || 0)));
     if (reset || prevCx == null || prevCy == null || (wasFitted && sizeJump > 80)) {
@@ -294,7 +291,6 @@ export class GameEngine {
     this.manualCooldown = Math.max(0, this.manualCooldown - dt);
     this._tickAutoDeploy(dt);
     this._tickAsteroidSpawn(dt);
-    this._syncCollectors();
     this._tickRegen(dt);
     this._tickGuidance(dt);
 
@@ -335,15 +331,26 @@ export class GameEngine {
     if (this.tapCooldown > 0) {
       return false;
     }
-    const ranked = this.asteroids
-      .filter((asteroid) => !asteroid.isDestroyed())
-      .map((asteroid) => ({
-        asteroid,
-        d: point.dist(asteroid.pos) - asteroid.radius * 0.15
-      }))
-      .sort((a, b) => a.d - b.d);
-    const target = ranked[0] && ranked[0].d < this.stats.tapRadius ? ranked[0].asteroid : null;
-    if (!target) {
+    let target = null;
+    let best = Infinity;
+    let second = null;
+    let secondD = Infinity;
+    for (const asteroid of this.asteroids) {
+      if (asteroid.isDestroyed()) {
+        continue;
+      }
+      const d = point.dist(asteroid.pos) - asteroid.radius * 0.15;
+      if (d < best) {
+        second = target;
+        secondD = best;
+        target = asteroid;
+        best = d;
+      } else if (d < secondD) {
+        second = asteroid;
+        secondD = d;
+      }
+    }
+    if (!target || best >= this.stats.tapRadius) {
       return false;
     }
 
@@ -374,17 +381,15 @@ export class GameEngine {
       this.state.stats.crits += 1;
     }
     damage = Math.max(1, Math.floor(damage));
-    const second =
-      this.stats.multiHit > 0 && ranked[1] && ranked[1].d < this.stats.tapRadius + 18
-        ? ranked[1].asteroid
-        : null;
+    const extraTarget =
+      this.stats.multiHit > 0 && second && secondD < this.stats.tapRadius + 18 ? second : null;
     this._spawnLaserBolt(target.pos, {
       targetId: target.id,
       damage,
       crit,
       over,
-      secondId: second ? second.id : null,
-      extra: second ? Math.max(1, Math.floor(damage * this.stats.multiHit)) : 0
+      secondId: extraTarget ? extraTarget.id : null,
+      extra: extraTarget ? Math.max(1, Math.floor(damage * this.stats.multiHit)) : 0
     });
     this.sound.playTap(crit || over);
     if (this.state.settings.haptics && navigator.vibrate) {
@@ -501,7 +506,7 @@ export class GameEngine {
       if (this.state.credits >= extraCost) {
         this.state.credits -= extraCost;
         this._spawnProbe();
-        this.pushToast('Twin rails — second probe away');
+        this.pushToast('Twin rails — second drill away');
       }
     }
     this.manualCooldown = this.stats.manualLaunchDelay;
@@ -545,6 +550,7 @@ export class GameEngine {
     }
     this.sound.playPurchase();
     this._checkMilestones();
+    fillJobs(this.state);
     this.markDirty();
     return true;
   }
@@ -635,7 +641,6 @@ export class GameEngine {
     const cargoUsed = this.collectors.reduce((n, c) => n + c.used, 0);
     const cargoMax = this.collectors.reduce((n, c) => n + c.capacity, 0);
     const cargoValue = this.collectors.reduce((n, c) => n + c.cargoValue(), 0);
-    fillJobs(this.state);
     const jobs = this.state.jobs.slots.map((job) => ({
       ...job,
       progress: jobProgress(job, this.state.stats),
@@ -668,7 +673,6 @@ export class GameEngine {
       tutorialStep: this.state.flags.tutorialStep,
       tutorial: TUTORIAL_STEPS[this.state.flags.tutorialStep] || null,
       toasts: this.toasts,
-      banked: this.stats.bankShot > 0 && this.drones.some((drone) => drone.bankT > 0),
       rocks: this.asteroids.length,
       maxAsteroids: this.fieldCap()
     };
@@ -718,7 +722,7 @@ export class GameEngine {
         label = `${damage} CRIT`;
         color = '#fde047';
       } else if (meta.bank) {
-        label = `${damage} BANK`;
+        label = `${damage} REBOUND`;
         color = '#fbbf24';
       }
       this._spawnFloat(origin.x, origin.y - 8, label, color, meta.crit || meta.bank ? 1 : 0.8);
@@ -910,20 +914,35 @@ export class GameEngine {
         if (asteroid.isDestroyed()) {
           continue;
         }
-        const delta = Vector2D.sub(drone.pos, asteroid.pos);
-        const dist = delta.mag();
+        const dx = drone.pos.x - asteroid.pos.x;
+        const dy = drone.pos.y - asteroid.pos.y;
+        const distSq = dx * dx + dy * dy;
         const radiusSum = drone.radius + asteroid.radius;
-        if (dist > radiusSum) {
+        if (distSq > radiusSum * radiusSum) {
           continue;
         }
-        const normal = dist === 0 ? new Vector2D(1, 0) : delta.normalize();
-        drone.pos.x = asteroid.pos.x + normal.x * (radiusSum + 0.2);
-        drone.pos.y = asteroid.pos.y + normal.y * (radiusSum + 0.2);
-        drone.vel.reflect(normal);
+        let nx;
+        let ny;
+        if (distSq === 0) {
+          nx = 1;
+          ny = 0;
+        } else {
+          const dist = Math.sqrt(distSq);
+          nx = dx / dist;
+          ny = dy / dist;
+        }
+        drone.pos.x = asteroid.pos.x + nx * (radiusSum + 0.2);
+        drone.pos.y = asteroid.pos.y + ny * (radiusSum + 0.2);
+        const vn = drone.vel.x * nx + drone.vel.y * ny;
+        drone.vel.x -= 2 * vn * nx;
+        drone.vel.y -= 2 * vn * ny;
         const trade = Math.max(1, Math.floor(drone.damage));
         const recoilFrac = Number.isFinite(this.stats.recoilFrac) ? this.stats.recoilFrac : 1;
         drone.hp -= Math.max(1, Math.floor(trade * recoilFrac));
-        const impact = Vector2D.add(asteroid.pos, normal.copy().mult(asteroid.radius));
+        const impact = new Vector2D(
+          asteroid.pos.x + nx * asteroid.radius,
+          asteroid.pos.y + ny * asteroid.radius
+        );
         let damage = trade;
         const charged = drone.bankT > 0;
         const banked = charged && this.stats.bankShot > 0;
@@ -1236,12 +1255,19 @@ export class GameEngine {
       }
     }
     const wealth = this.state.credits + cargo + field;
-    this.wealthSamples.push({ t: this.elapsed, w: wealth });
+    const samples = this.wealthSamples;
+    samples.push({ t: this.elapsed, w: wealth });
     const cutoff = this.elapsed - 5;
-    this.wealthSamples = this.wealthSamples.filter((sample) => sample.t >= cutoff);
-    if (this.wealthSamples.length >= 2) {
-      const first = this.wealthSamples[0];
-      const last = this.wealthSamples[this.wealthSamples.length - 1];
+    let start = 0;
+    while (start < samples.length && samples[start].t < cutoff) {
+      start += 1;
+    }
+    if (start > 0) {
+      samples.splice(0, start);
+    }
+    if (samples.length >= 2) {
+      const first = samples[0];
+      const last = samples[samples.length - 1];
       const span = Math.max(0.25, last.t - first.t);
       this.creditsPerSec = Math.max(0, (last.w - first.w) / span);
     }

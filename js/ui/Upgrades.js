@@ -36,7 +36,7 @@ export const GROUP_BLURBS = {
   'Manual Rig': 'Fire bolts from the refinery. Ore drops on shatter. Chip Harvest can leak chips as they split.',
   Specialist: 'Precision toys. Crits, splash, and rhythm once the laser is worth firing.',
   Overdrive: 'Late laser kits. Locked until the basic rig is actually upgraded.',
-  Probes: 'Kinetic drills. Walls are free. Rocks trade hull for damage.',
+  Drills: 'Kinetic drills. Walls are free. Rocks trade hull for damage.',
   Automation: 'Mid-game dispatch. Auto-launch still pays the drill fee.',
   Ballistics: 'Separate from the laser. Crits for drills.',
   Ordnance: 'Guidance, chains, and twin rails for a real fleet.',
@@ -204,7 +204,7 @@ export const UPGRADE_DEFS = [
     id: 'drone_max_count',
     name: 'Max Drill Fleet',
     tab: 'fleet',
-    group: 'Probes',
+    group: 'Drills',
     baseCost: 48,
     scale: 1.88,
     maxLevel: TUNING.probeCap - 1,
@@ -215,18 +215,18 @@ export const UPGRADE_DEFS = [
     id: 'drone_damage',
     name: 'Kinetic Energy',
     tab: 'fleet',
-    group: 'Probes',
+    group: 'Drills',
     baseCost: 18,
     scale: 1.23,
     maxLevel: 80,
     effect: (level) => probeDamageAt(level),
-    describe: (level) => `Probe damage: ${probeDamageAt(level)}`
+    describe: (level) => `Drill damage: ${probeDamageAt(level)}`
   }),
   u({
     id: 'drone_hull',
     name: 'Reinforced Hull',
     tab: 'fleet',
-    group: 'Probes',
+    group: 'Drills',
     baseCost: 20,
     scale: 1.27,
     maxLevel: 40,
@@ -237,7 +237,7 @@ export const UPGRADE_DEFS = [
     id: 'drone_speed',
     name: 'Impulse Thrusters',
     tab: 'fleet',
-    group: 'Probes',
+    group: 'Drills',
     baseCost: 24,
     scale: 1.2,
     maxLevel: 32,
@@ -248,7 +248,7 @@ export const UPGRADE_DEFS = [
     id: 'launch_discount',
     name: 'Bulk Drill Contract',
     tab: 'fleet',
-    group: 'Probes',
+    group: 'Drills',
     baseCost: 40,
     scale: 1.38,
     maxLevel: 18,
@@ -259,7 +259,7 @@ export const UPGRADE_DEFS = [
     id: 'drone_recoil',
     name: 'Inertial Dampers',
     tab: 'fleet',
-    group: 'Probes',
+    group: 'Drills',
     baseCost: 32,
     scale: 1.33,
     maxLevel: 16,
@@ -273,7 +273,7 @@ export const UPGRADE_DEFS = [
     id: 'bounce_damp',
     name: 'Elastic Plating',
     tab: 'fleet',
-    group: 'Probes',
+    group: 'Drills',
     baseCost: 28,
     scale: 1.31,
     maxLevel: 14,
@@ -292,7 +292,7 @@ export const UPGRADE_DEFS = [
     effect: (level) => (level <= 0 ? 0 : Math.min(0.48, 0.07 + (level - 1) * 0.021)),
     describe: (level) =>
       level <= 0
-        ? 'Off — probes never crit (pick crits stay separate)'
+        ? 'Off — drills never crit (laser crits stay separate)'
         : `Probe crit chance: ${(Math.min(0.48, 0.07 + (level - 1) * 0.021) * 100).toFixed(0)}%`
   }),
   u({
@@ -305,7 +305,7 @@ export const UPGRADE_DEFS = [
     scale: 1.4,
     maxLevel: 16,
     effect: (level) => 1.85 + level * 0.15,
-    describe: (level) => `Probe crit damage: ${Math.round((1.85 + level * 0.15) * 100)}%`
+    describe: (level) => `Drill crit damage: ${Math.round((1.85 + level * 0.15) * 100)}%`
   }),
   u({
     id: 'bank_shot',
@@ -712,7 +712,7 @@ export const UPGRADE_DEFS = [
     scale: 1.5,
     maxLevel: 12,
     effect: (level) => level * 8,
-    describe: (level) => `Permanent probe HP +${level * 8}`
+    describe: (level) => `Permanent drill HP +${level * 8}`
   }),
   u({
     id: 'veteran_engines',
@@ -724,7 +724,7 @@ export const UPGRADE_DEFS = [
     scale: 1.5,
     maxLevel: 12,
     effect: (level) => level * 6,
-    describe: (level) => `Permanent probe speed +${level * 6}`
+    describe: (level) => `Permanent drill speed +${level * 6}`
   }),
   u({
     id: 'veteran_optics',
@@ -736,7 +736,7 @@ export const UPGRADE_DEFS = [
     scale: 1.52,
     maxLevel: 12,
     effect: (level) => level * 0.012,
-    describe: (level) => `Permanent probe crit +${(level * 1.2).toFixed(1)}%`
+    describe: (level) => `Permanent drill crit +${(level * 1.2).toFixed(1)}%`
   }),
   u({
     id: 'veteran_tether',
@@ -877,7 +877,7 @@ export const SECTORS = [
     level: 1,
     name: 'Alpha Sector',
     short: 'Alpha',
-    lore: 'A quiet gravel claim. Tap everything. Do not waste a probe yet.',
+    lore: 'A quiet gravel claim. Tap everything. Do not waste a drill yet.',
     tint: 'rgba(56, 189, 248, 0.055)',
     unlock: 0,
     width: 400,

@@ -8,7 +8,7 @@ import {
   sectorUnlockNeed,
   upgradeCost
 } from './Upgrades.js';
-import { formatCredits, formatDuration } from '../world/Engine.js';
+import { formatCredits, formatDuration } from '../engine/GameEngine.js';
 import { StorageManager } from '../engine/StorageManager.js';
 import { isStandaloneDisplay } from '../pwa.js';
 
@@ -36,8 +36,12 @@ export class Shell {
     this.holdTimer = 0;
     this.holding = false;
     this.installEvent = null;
+    this._jobsSig = '';
+    this._toastSig = '';
     this._treesBuilt = false;
     this._openedForPick = false;
+    this.tabButtons = [...document.querySelectorAll('.tab')];
+    this.tabsEl = document.getElementById('tabs');
     this.els = {
       credits: document.getElementById('stat-credits'),
       rate: document.getElementById('stat-rate'),
@@ -142,7 +146,7 @@ export class Shell {
 
     this.els.nextBuy.addEventListener('click', (event) => this._onBuy(event));
 
-    document.querySelectorAll('.tab').forEach((tab) => {
+    this.tabButtons.forEach((tab) => {
       tab.addEventListener('click', () => this.setTab(tab.dataset.tab));
     });
 
@@ -550,6 +554,11 @@ export class Shell {
     this.els.shop.dataset.jobsPanel = this.jobsPanel && this.sheetOpen ? '1' : '0';
     this.els.handle.setAttribute('aria-expanded', this.sheetOpen ? 'true' : 'false');
     this.els.sheetLabel.textContent = 'Upgrades';
+    if (this.sheetOpen) {
+      const snap = this.engine.hudSnapshot();
+      this._updateTabs(snap);
+      this._updateUpgradeButtons(snap);
+    }
     requestAnimationFrame(() => {
       this.fitCanvas();
       requestAnimationFrame(() => this.fitCanvas());
@@ -673,7 +682,7 @@ export class Shell {
       this.els.shop.dataset.jobsPanel = '0';
     }
     this.els.sheetLabel.textContent = 'Upgrades';
-    document.querySelectorAll('.tab').forEach((tab) => {
+    this.tabButtons.forEach((tab) => {
       tab.classList.toggle('active', tab.dataset.tab === name);
     });
     document.querySelectorAll('.tab-page').forEach((page) => {
@@ -897,14 +906,17 @@ export class Shell {
     this.els.credits.textContent = formatCredits(snap.credits);
     this.els.rate.textContent = snap.rate.toFixed(1);
     this.els.sectorBadge.textContent = `S${snap.sector.level} ${snap.sector.short}`;
-    this.els.canvasWrap.classList.toggle('bank-live', Boolean(snap.banked));
     const ready = snap.tapInterval <= 0 ? 1 : 1 - snap.tapCooldown / snap.tapInterval;
     this.els.tapFill.style.transform = `scaleX(${Math.max(0, Math.min(1, ready))})`;
-    this._updateTabs(snap);
+    if (this.sheetOpen) {
+      this._updateTabs(snap);
+      this._updateUpgradeButtons(snap);
+    }
     this._updateDeploy(snap);
     this.patchPeek();
-    this._updateUpgradeButtons(snap);
-    this._updateLedger(snap);
+    if (!this.els.settingsModal.classList.contains('hidden')) {
+      this._updateLedger(snap);
+    }
     this._updateJobs(snap);
     this._updateEvent(snap);
     this._updateToasts(snap);
@@ -918,7 +930,7 @@ export class Shell {
 
   _updateTabs(snap) {
     const revealed = this.revealedTabs(snap);
-    document.querySelectorAll('.tab').forEach((tab) => {
+    this.tabButtons.forEach((tab) => {
       const show = revealed.has(tab.dataset.tab);
       tab.classList.toggle('hidden', !show);
       if (!show && this.activeTab === tab.dataset.tab) {
@@ -926,7 +938,9 @@ export class Shell {
       }
     });
     const visible = [...revealed];
-    document.getElementById('tabs').style.gridTemplateColumns = `repeat(${Math.max(1, visible.length)}, minmax(0, 1fr))`;
+    if (this.tabsEl) {
+      this.tabsEl.style.gridTemplateColumns = `repeat(${Math.max(1, visible.length)}, minmax(0, 1fr))`;
+    }
   }
 
   _updateDeploy(snap) {
@@ -1033,6 +1047,17 @@ export class Shell {
   }
 
   _updateCoach(snap) {
+    if (!snap.tutorial) {
+      if (!this.els.coach.classList.contains('hidden')) {
+        this.els.coach.classList.add('hidden');
+        this.els.canvasWrap.dataset.coach = '';
+        if (this.els.playfield) {
+          this.els.playfield.dataset.coach = '';
+        }
+        this.els.app.dataset.coach = '';
+      }
+      return;
+    }
     const chipsOnField = this.engine.particles.some((chip) => !chip.collected);
     let spotlight = '';
     if (snap.tutorial && snap.tutorial.id === 'tap') {
@@ -1054,10 +1079,6 @@ export class Shell {
       this.els.playfield.dataset.coach = spotlight === 'launch' ? '' : spotlight;
     }
     this.els.app.dataset.coach = spotlight;
-    if (!snap.tutorial) {
-      this.els.coach.classList.add('hidden');
-      return;
-    }
     this.els.coach.classList.remove('hidden');
     this.els.coachTitle.textContent = snap.tutorial.title;
     this.els.coachBody.textContent = snap.tutorial.body;
@@ -1072,5 +1093,3 @@ export class Shell {
     this._show(this.els.offlineModal);
   }
 }
-
-export { Shell as UIManager };

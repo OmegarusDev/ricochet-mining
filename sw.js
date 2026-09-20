@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ricochet-v26';
+const CACHE_NAME = 'ricochet-v27';
 
 const PRECACHE_URLS = [
   './',
@@ -17,13 +17,11 @@ const PRECACHE_URLS = [
   './js/engine/GameEngine.js',
   './js/engine/Vector2D.js',
   './js/engine/StorageManager.js',
-  './js/world/Engine.js',
   './js/view/Renderer.js',
   './js/entities/Asteroid.js',
   './js/entities/MiningDrone.js',
   './js/entities/CollectorDrone.js',
   './js/entities/OreParticle.js',
-  './js/ui/UIManager.js',
   './js/ui/Shell.js',
   './js/ui/Upgrades.js',
   './js/content/Campaign.js',
@@ -85,7 +83,6 @@ self.addEventListener('fetch', (event) => {
 
   event.respondWith((async () => {
     const cached = await caches.match(event.request, { ignoreSearch: true });
-    const url = new URL(event.request.url);
     const liveCode =
       event.request.mode === 'navigate' ||
       url.pathname.endsWith('.js') ||

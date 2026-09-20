@@ -47,16 +47,18 @@ export class MiningDrone {
   }
 
   draw(ctx) {
-    if (this.trail.length > 1) {
+    if (this.trail.length > 0) {
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
-      const points = [...this.trail, this.pos];
       const banked = this.bankT > 0;
-      for (let i = 1; i < points.length; i++) {
-        const t = i / (points.length - 1);
+      const n = this.trail.length;
+      for (let i = 1; i <= n; i++) {
+        const prev = this.trail[i - 1];
+        const cur = i === n ? this.pos : this.trail[i];
+        const t = i / n;
         ctx.beginPath();
-        ctx.moveTo(points[i - 1].x, points[i - 1].y);
-        ctx.lineTo(points[i].x, points[i].y);
+        ctx.moveTo(prev.x, prev.y);
+        ctx.lineTo(cur.x, cur.y);
         ctx.strokeStyle = banked
           ? `rgba(251, 191, 36, ${0.12 + 0.7 * t})`
           : `rgba(56, 189, 248, ${0.1 + 0.62 * t})`;
