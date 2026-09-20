@@ -17,7 +17,8 @@ export function defaultState() {
       gameSpeed: 1,
       haptics: true,
       damageNumbers: true,
-      reducedMotion: false
+      reducedMotion:
+        typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
     },
     stats: {
       taps: 0,
@@ -118,6 +119,9 @@ export const StorageManager = {
   load() {
     let state = mergeState(readRaw());
     const offline = applyOfflineGains(state);
+    if (offline) {
+      this.save(state);
+    }
     return { state, offline };
   },
 

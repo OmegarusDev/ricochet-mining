@@ -2,23 +2,10 @@ import { StorageManager } from './engine/StorageManager.js';
 import { SoundEngine } from './audio/SoundEngine.js';
 import { GameEngine } from './world/Engine.js';
 import { Shell } from './ui/Shell.js';
-
-function registerServiceWorker() {
-  if (!('serviceWorker' in navigator)) {
-    return;
-  }
-  navigator.serviceWorker.register('./sw.js', { scope: './' }).catch((err) => {
-    console.warn('Service worker registration failed.', err);
-  });
-}
+import { registerPwa } from './pwa.js';
 
 function boot() {
-  const startWorker = () => setTimeout(registerServiceWorker, 500);
-  if (document.readyState === 'complete') {
-    startWorker();
-  } else {
-    window.addEventListener('load', startWorker);
-  }
+  registerPwa();
 
   const { state, offline } = StorageManager.load();
   state.settings.gameSpeed = Number(state.settings.gameSpeed) || 1;

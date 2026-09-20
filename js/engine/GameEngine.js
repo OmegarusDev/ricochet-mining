@@ -148,7 +148,8 @@ export class GameEngine {
     this.canvas.style.height = '100%';
     this.ctx = this.canvas.getContext('2d');
     const wasFitted = this.isViewFitted(prevScale, prevCx, prevCy, prevW, prevH);
-    if (reset || prevCx == null || prevCy == null || wasFitted) {
+    const sizeJump = Math.max(Math.abs(displayWidth - (prevW || 0)), Math.abs(displayHeight - (prevH || 0)));
+    if (reset || prevCx == null || prevCy == null || (wasFitted && sizeJump > 80)) {
       this.resetView();
     } else {
       this.view.scale = prevScale;
@@ -343,11 +344,7 @@ export class GameEngine {
 
     this.tapCooldown = this.stats.tapInterval;
     this.state.stats.taps += 1;
-    this.hint = false;
     this.state.flags.tapped = true;
-    if (this.state.flags.tutorialStep === 0) {
-      this.state.flags.tutorialStep = 1;
-    }
     this.ripples.push({ x: point.x, y: point.y, age: 0, life: 0.35, miss: false });
 
     if (this.comboId === target.id) {
@@ -552,7 +549,7 @@ export class GameEngine {
 
   replayTutorial() {
     this.state.flags.tutorialStep = 0;
-    this.hint = !this.state.flags.tapped;
+    this.hint = true;
     this.markDirty();
   }
 
@@ -593,7 +590,7 @@ export class GameEngine {
       tutorialStep: this.state.flags.tutorialStep,
       tutorial: TUTORIAL_STEPS[this.state.flags.tutorialStep] || null,
       toasts: this.toasts,
-      banked: this.drones.some((drone) => drone.bankT > 0),
+      banked: this.stats.bankShot > 0 && this.drones.some((drone) => drone.bankT > 0),
       rocks: this.asteroids.length,
       maxAsteroids: this.fieldCap()
     };
@@ -666,6 +663,10 @@ export class GameEngine {
         )
       );
       this.state.stats.asteroidsBroken += 1;
+      this.hint = false;
+      if (this.state.flags.tutorialStep === 0) {
+        this.state.flags.tutorialStep = 1;
+      }
       const rare = asteroid.tier && ['gold', 'platinum', 'dark', 'void', 'horizon'].includes(asteroid.tier.id);
       if (rare) {
         this.flash = 0.22;
@@ -815,7 +816,7 @@ export class GameEngine {
     this.sound.playBounce();
     if (!this.state.flags.seenBank) {
       this.state.flags.seenBank = true;
-      this.pushToast('Charged');
+      this.pushToast(this.stats.bankShot > 0 ? 'Charged' : 'Walls are free');
     }
     this._checkMilestones();
   }
@@ -844,18 +845,20 @@ export class GameEngine {
         drone.hp -= Math.max(1, Math.floor(trade * recoilFrac));
         const impact = Vector2D.add(asteroid.pos, normal.copy().mult(asteroid.radius));
         let damage = trade;
-        const banked = drone.bankT > 0;
-        if (banked && this.stats.bankShot > 0) {
+        const charged = drone.bankT > 0;
+        const banked = charged && this.stats.bankShot > 0;
+        if (charged) {
+          drone.bankT = 0;
+        }
+        if (banked) {
           damage *= 1 + this.stats.bankShot;
+          this.state.stats.bankHits += 1;
         }
         let crit = false;
         if (Math.random() < this.stats.probeCrit) {
           damage *= this.stats.probeCritMult;
           crit = true;
           this.state.stats.crits += 1;
-        }
-        if (banked) {
-          this.state.stats.bankHits += 1;
         }
         damage = Math.max(1, Math.floor(damage));
         this._strikeAsteroid(asteroid, damage, impact, { tap: false, crit, bank: banked });
@@ -865,6 +868,9 @@ export class GameEngine {
         }
         if (banked && !this.state.settings.reducedMotion) {
           this.shake = Math.max(this.shake, 0.09);
+        }
+        if (drone.isDestroyed()) {
+          break;
         }
         if (this.stats.chainFrac > 0) {
           let chain = null;
@@ -949,6 +955,7 @@ export class GameEngine {
       }
       collector.unloadAcc += this.stats.unloadPerSec * dt;
       let gained = 0;
+      let chips = 0;
       while (collector.unloadAcc >= 1 && collector.used > 0) {
         collector.unloadAcc -= 1;
         const chip = collector.cargo.shift();
@@ -956,12 +963,13 @@ export class GameEngine {
           break;
         }
         gained += chip.value;
+        chips += 1;
       }
       if (gained > 0) {
         this.state.credits += gained;
         this.state.totalOreHarvested += gained;
         this.state.stats.lifetimeCredits += gained;
-        this.state.stats.deposits += 1;
+        this.state.stats.deposits += chips;
         this.creditEvents.push({ t: this.elapsed, amount: gained });
         this._spawnFloat(depot.x, depot.y - 18, `+$${formatCredits(gained)}`, '#f59e0b');
         this.depotPulse = 0.45;

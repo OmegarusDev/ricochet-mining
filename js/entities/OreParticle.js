@@ -51,7 +51,7 @@ export class OreParticle {
       return;
     }
     const pulseR = Math.max(0.5, this.radius * (reduced ? 1 : 1 + 0.16 * Math.sin(this.pulse)));
-    const dim = this.isMagnetized ? 1 : 0.78;
+    const dim = this.isMagnetized ? 1 : 0.92;
     ctx.save();
     ctx.globalAlpha = dim;
     ctx.translate(this.pos.x, this.pos.y);
@@ -64,6 +64,9 @@ export class OreParticle {
     ctx.closePath();
     ctx.fillStyle = this.color;
     ctx.fill();
+    ctx.strokeStyle = this.isMagnetized ? 'rgba(248, 250, 252, 0.9)' : 'rgba(226, 232, 240, 0.7)';
+    ctx.lineWidth = 1.15;
+    ctx.stroke();
     ctx.fillStyle = 'rgba(248, 250, 252, 0.45)';
     ctx.beginPath();
     ctx.moveTo(-pulseR * 0.15, -pulseR * 0.7);

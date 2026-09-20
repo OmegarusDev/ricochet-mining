@@ -16,7 +16,10 @@
   --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
   --peek: 84px;
   --hud: 48px;
+  --safe-t: env(safe-area-inset-top, 0px);
   --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-l: env(safe-area-inset-left, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
 }
 
 * {
@@ -27,6 +30,7 @@ html,
 body {
   margin: 0;
   height: 100%;
+  height: 100dvh;
   background: var(--bg);
   color: var(--text);
   font-family: var(--font);
@@ -36,17 +40,20 @@ body {
 
 #app {
   height: 100dvh;
+  height: 100svh;
   display: grid;
-  grid-template-rows: var(--hud) minmax(0, 1fr) auto;
+  grid-template-rows: calc(var(--hud) + var(--safe-t)) minmax(0, 1fr) auto;
   min-height: 0;
   overflow: hidden;
+  padding-left: var(--safe-l);
+  padding-right: var(--safe-r);
   background:
     radial-gradient(120% 80% at 50% 0%, #12304a 0%, transparent 55%),
     var(--bg);
 }
 
 #app[data-sheet='1'] {
-  grid-template-rows: var(--hud) minmax(72px, 1fr) minmax(280px, 52dvh);
+  grid-template-rows: calc(var(--hud) + var(--safe-t)) minmax(72px, 1fr) minmax(280px, 52dvh);
 }
 
 #hud {
@@ -54,7 +61,8 @@ body {
   grid-template-columns: minmax(0, 1fr) auto auto 44px;
   align-items: center;
   gap: 10px;
-  padding: 0 10px 0 14px;
+  padding: var(--safe-t) 10px 0 14px;
+  min-height: calc(var(--hud) + var(--safe-t));
   border-bottom: 1px solid var(--line);
   background: linear-gradient(180deg, #0e1a2c 0%, #0a1422 100%);
 }
@@ -108,6 +116,10 @@ body {
   text-align: center;
   font-family: var(--mono);
   font-size: 0.7rem;
+}
+
+#btn-jobs:not(.ready) #job-pip {
+  color: var(--muted);
 }
 
 #btn-settings {
@@ -419,6 +431,13 @@ body {
   display: block;
 }
 
+.jobs-back {
+  width: 100%;
+  margin: 0 0 10px;
+  min-height: 44px;
+  cursor: pointer;
+}
+
 #shop[data-jobs-panel='1'] .tab-page {
   display: none;
 }
@@ -460,7 +479,9 @@ body {
 
 .upgrade-card button,
 .sector-card button,
+.jobs-back,
 #offline-dismiss,
+#install-help-close,
 .modal-actions button,
 #btn-danger,
 #btn-hold-reset,
@@ -613,7 +634,8 @@ body {
 #danger-modal,
 #reset-modal,
 #save-modal,
-#expand-modal {
+#expand-modal,
+#install-help {
   z-index: 30;
 }
 
@@ -702,6 +724,10 @@ body {
   background: #243044 !important;
 }
 
+#install-help-close {
+  width: 100%;
+}
+
 .modal-actions {
   display: flex;
   gap: 8px;
@@ -770,6 +796,7 @@ body {
   border: 1px solid var(--cyan);
   border-radius: 10px;
   padding: 10px 12px;
+  pointer-events: none;
 }
 
 #coach-mark strong {
@@ -795,6 +822,7 @@ body {
   padding: 8px 12px;
   min-height: 44px;
   border-radius: 8px;
+  pointer-events: auto;
 }
 
 .job-pay {
@@ -855,8 +883,8 @@ body {
   box-shadow: inset 0 0 0 3px rgba(251, 191, 36, 0.45);
 }
 
-#canvas-wrap[data-coach='haul'] #sector-badge {
-  box-shadow: 0 0 0 2px var(--gold);
+#canvas-wrap[data-coach='haul'] {
+  box-shadow: inset 0 -68px 56px -10px rgba(251, 191, 36, 0.42);
 }
 
 #canvas-wrap[data-coach='launch'] #btn-deploy {
@@ -885,7 +913,7 @@ body {
   #app[data-sheet='1'] {
     display: grid;
     grid-template-columns: minmax(0, 1fr) min(420px, 38vw);
-    grid-template-rows: var(--hud) minmax(0, 1fr);
+    grid-template-rows: calc(var(--hud) + var(--safe-t)) minmax(0, 1fr);
   }
 
   #hud {

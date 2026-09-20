@@ -35,6 +35,9 @@ export class Renderer {
     this._drawGrid(ctx, W, H);
     this._drawRail(ctx, W, H);
     this._drawDepot(ctx);
+    for (const asteroid of engine.asteroids) {
+      asteroid.draw(ctx);
+    }
     this._drawRipples(ctx);
     this._drawSparks(ctx);
 
@@ -47,9 +50,6 @@ export class Renderer {
     for (const drone of engine.drones) {
       drone.draw(ctx);
     }
-    for (const asteroid of engine.asteroids) {
-      asteroid.draw(ctx);
-    }
     this._drawFloating(ctx);
     if (engine.combo >= 2) {
       ctx.fillStyle = '#fde047';
@@ -57,7 +57,7 @@ export class Renderer {
       ctx.textAlign = 'left';
       ctx.fillText(`COMBO ×${engine.combo}`, 10, 18);
     }
-    if (engine.drones.some((drone) => drone.bankT > 0)) {
+    if (engine.stats.bankShot > 0 && engine.drones.some((drone) => drone.bankT > 0)) {
       ctx.fillStyle = '#fbbf24';
       ctx.font = '800 11px ui-monospace, SFMono-Regular, Menlo, sans-serif';
       ctx.textAlign = 'right';

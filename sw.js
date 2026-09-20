@@ -1,11 +1,18 @@
-const CACHE_NAME = 'ricochet-v18';
+const CACHE_NAME = 'ricochet-v20';
 
 const PRECACHE_URLS = [
   './',
   './index.html',
   './css/style.css',
   './manifest.json',
+  './manifest.webmanifest',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+  './icons/icon-512-maskable.png',
+  './icons/apple-touch-icon.png',
+  './icons/favicon.svg',
   './js/main.js',
+  './js/pwa.js',
   './js/audio/SoundEngine.js',
   './js/engine/GameEngine.js',
   './js/engine/Vector2D.js',
@@ -61,21 +68,39 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') {
     return;
   }
+  const url = new URL(event.request.url);
+  if (url.origin !== self.location.origin) {
+    return;
+  }
 
   event.respondWith((async () => {
-    const cached = await caches.match(event.request);
+    const cached = await caches.match(event.request, { ignoreSearch: true });
+    const url = new URL(event.request.url);
+    const liveCode =
+      event.request.mode === 'navigate' ||
+      url.pathname.endsWith('.js') ||
+      url.pathname.endsWith('.css') ||
+      url.pathname.endsWith('.html') ||
+      url.pathname.endsWith('.webmanifest') ||
+      url.pathname.endsWith('.json');
 
-    if (event.request.mode === 'navigate') {
+    if (liveCode) {
       try {
         const fresh = await fetch(event.request);
         await cachePut(event.request, fresh);
         return fresh;
       } catch (err) {
-        return cached || (await caches.match('./index.html')) || emptyFallback();
+        return cached || (await caches.match('./index.html', { ignoreSearch: true })) || emptyFallback();
       }
     }
 

@@ -3,14 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
-  <meta name="theme-color" content="#38bdf8" />
+  <meta name="theme-color" content="#070d18" />
+  <meta name="color-scheme" content="dark" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="RicochetMine" />
+  <meta name="application-name" content="RicochetMine" />
+  <meta name="description" content="Tap-to-mine kinetic asteroid incremental. Launch paid probes, haul ore to the refinery pad." />
   <title>Ricochet Mining Co.</title>
   <link rel="manifest" href="./manifest.json" />
-  <link rel="stylesheet" href="./css/style.css?v=18" />
+  <link rel="icon" href="./icons/favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+  <link rel="stylesheet" href="./css/style.css?v=20" />
   <style>
     html, body, #app, #canvas-wrap, #game-canvas {
       background: #070d18;
@@ -107,9 +112,9 @@
       </div>
       <div class="settings-card">
         <h3>Install / save</h3>
-        <p class="settings-copy">Add to home screen as a WebAPK / PWA. Export a backup before wiping a device.</p>
+        <p class="settings-copy">Install from the live Pages site in Chrome (Android WebAPK) or Safari (Add to Home Screen). The installed app launches fullscreen.</p>
         <div class="modal-actions">
-          <button id="btn-install" class="hidden" type="button">Install app</button>
+          <button id="btn-install" type="button">How to install</button>
           <button id="btn-export" type="button">Export save</button>
           <button id="btn-import" type="button">Import save</button>
         </div>
@@ -124,6 +129,17 @@
         <p class="settings-copy">Wipe the corporation. Buried behind two confirmations, then a press-and-hold.</p>
         <button id="btn-danger" type="button">Open danger zone</button>
       </div>
+    </div>
+  </div>
+
+  <div id="install-help" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="install-help-title" hidden inert>
+    <div class="modal-body">
+      <h2 id="install-help-title">Install Ricochet</h2>
+      <p><strong>Android Chrome:</strong> open the live Pages site, then the browser menu → <em>Install app</em> / Add to Home screen. That builds a WebAPK and launches fullscreen (no status bar).</p>
+      <p><strong>iPhone / iPad:</strong> Safari → Share → Add to Home Screen.</p>
+      <p><strong>Desktop Chrome:</strong> install icon in the address bar, or menu → Install app. Desktop stays windowed unless you use the browser fullscreen control.</p>
+      <p>Install from <em>omegarusdev.github.io/ricochet-mining</em>, not from this README. Remove an old home-screen icon before reinstalling if the clock still shows.</p>
+      <button id="install-help-close" type="button">Got it</button>
     </div>
   </div>
 
@@ -190,6 +206,6 @@
       document.body.appendChild(box);
     });
   </script>
-  <script type="module" src="./js/main.js?v=18"></script>
+  <script type="module" src="./js/main.js?v=20"></script>
 </body>
 </html>

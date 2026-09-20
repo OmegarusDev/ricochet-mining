@@ -10,6 +10,7 @@ import {
 } from './Upgrades.js';
 import { formatCredits, formatDuration } from '../world/Engine.js';
 import { StorageManager } from '../engine/StorageManager.js';
+import { isStandaloneDisplay } from '../pwa.js';
 
 const HOLD_MS = 2200;
 const TAB_LABELS = {
@@ -41,6 +42,7 @@ export class Shell {
     this.holding = false;
     this.installEvent = null;
     this._treesBuilt = false;
+    this._openedForPick = false;
     this.els = {
       credits: document.getElementById('stat-credits'),
       rate: document.getElementById('stat-rate'),
@@ -87,6 +89,8 @@ export class Shell {
       coachTitle: document.getElementById('coach-title'),
       coachBody: document.getElementById('coach-body'),
       install: document.getElementById('btn-install'),
+      installHelp: document.getElementById('install-help'),
+      installHelpClose: document.getElementById('install-help-close'),
       settingsBtn: document.getElementById('btn-settings'),
       settingsModal: document.getElementById('settings-modal'),
       settingsClose: document.getElementById('settings-close')
@@ -146,7 +150,14 @@ export class Shell {
     this.els.fleet.addEventListener('click', (event) => this._onBuy(event));
     this.els.haul.addEventListener('click', (event) => this._onBuy(event));
     this.els.sector.addEventListener('click', (event) => this._onBuy(event) || this._onExpand(event));
-    this.els.jobs.addEventListener('click', (event) => this._onClaim(event));
+    this.els.jobs.addEventListener('click', (event) => {
+      if (event.target.closest('[data-jobs-back]')) {
+        this.jobsPanel = false;
+        this._applySheet();
+        return;
+      }
+      this._onClaim(event);
+    });
     this.els.peekJob.addEventListener('click', (event) => this._onClaim(event));
 
     this.els.jobBtn.addEventListener('click', () => {
@@ -183,6 +194,7 @@ export class Shell {
     const replay = document.getElementById('btn-replay-tips');
     if (replay) {
       replay.addEventListener('click', () => {
+        this._openedForPick = false;
         this.engine.replayTutorial();
         this._hide(this.els.settingsModal);
         this.update();
@@ -218,6 +230,18 @@ export class Shell {
       }
       if (!this.els.saveModal.classList.contains('hidden')) {
         this._hide(this.els.saveModal);
+        return;
+      }
+      if (!this.els.expandModal.classList.contains('hidden')) {
+        this._hide(this.els.expandModal);
+        return;
+      }
+      if (!this.els.offlineModal.classList.contains('hidden')) {
+        this._hide(this.els.offlineModal);
+        return;
+      }
+      if (this.els.installHelp && !this.els.installHelp.classList.contains('hidden')) {
+        this._hide(this.els.installHelp);
         return;
       }
       if (!this.els.settingsModal.classList.contains('hidden')) {
@@ -280,20 +304,49 @@ export class Shell {
       }
     });
 
+    this._syncInstallButton();
     window.addEventListener('beforeinstallprompt', (event) => {
       event.preventDefault();
       this.installEvent = event;
-      this.els.install.classList.remove('hidden');
+      this._syncInstallButton();
+    });
+    window.addEventListener('appinstalled', () => {
+      this.installEvent = null;
+      if (this.els.installHelp) {
+        this._hide(this.els.installHelp);
+      }
+      this._syncInstallButton();
     });
     this.els.install.addEventListener('click', async () => {
-      if (!this.installEvent) {
+      if (isStandaloneDisplay()) {
+        this.engine.pushToast('Already installed');
         return;
       }
-      this.installEvent.prompt();
-      await this.installEvent.userChoice;
-      this.installEvent = null;
-      this.els.install.classList.add('hidden');
+      if (this.installEvent) {
+        try {
+          this.installEvent.prompt();
+          await this.installEvent.userChoice;
+        } catch (err) {
+          /* dismissed */
+        }
+        this.installEvent = null;
+        this._syncInstallButton();
+        return;
+      }
+      if (this.els.installHelp) {
+        this._show(this.els.installHelp);
+      }
     });
+    if (this.els.installHelpClose) {
+      this.els.installHelpClose.addEventListener('click', () => this._hide(this.els.installHelp));
+    }
+    if (this.els.installHelp) {
+      this.els.installHelp.addEventListener('click', (event) => {
+        if (event.target === this.els.installHelp) {
+          this._hide(this.els.installHelp);
+        }
+      });
+    }
 
     const holdBtn = this.els.holdBtn;
     const startHold = (event) => {
@@ -333,7 +386,7 @@ export class Shell {
 
   _bindFieldCamera(canvas) {
     const pointers = new Map();
-    const TAP_PX = 14;
+    const TAP_PX = 24;
     let mode = 'none';
     let lastX = 0;
     let lastY = 0;
@@ -465,13 +518,16 @@ export class Shell {
       const dy = event.clientY - startY;
       if (dy < -24) {
         this.sheetOpen = true;
+        this.jobsPanel = false;
       } else if (dy > 24) {
         this.sheetOpen = false;
+      } else if (this.sheetOpen && this.jobsPanel) {
+        this.jobsPanel = false;
       } else {
         this.sheetOpen = !this.sheetOpen;
-      }
-      if (this.sheetOpen) {
-        this.jobsPanel = false;
+        if (this.sheetOpen) {
+          this.jobsPanel = false;
+        }
       }
       this._applySheet();
     };
@@ -486,7 +542,7 @@ export class Shell {
     this.els.handle.setAttribute('aria-expanded', this.sheetOpen ? 'true' : 'false');
     this.els.sheetLabel.textContent = this.sheetOpen
       ? this.jobsPanel
-        ? 'Jobs'
+        ? 'Upgrades'
         : TAB_LABELS[this.activeTab] || 'Upgrades'
       : 'Upgrades';
     requestAnimationFrame(() => {
@@ -532,6 +588,19 @@ export class Shell {
   _resetHold() {
     this.holding = false;
     this.els.holdFill.style.width = '0%';
+  }
+
+  _syncInstallButton() {
+    const btn = this.els.install;
+    if (!btn) {
+      return;
+    }
+    if (isStandaloneDisplay()) {
+      btn.classList.add('hidden');
+      return;
+    }
+    btn.classList.remove('hidden');
+    btn.textContent = this.installEvent ? 'Install app' : 'How to install';
   }
 
   pollHold() {
@@ -870,7 +939,7 @@ export class Shell {
 
   _updateJobs(snap) {
     const readyJobs = snap.jobs.filter((job) => job.progress >= job.amount);
-    this.els.jobPip.textContent = readyJobs.length ? String(readyJobs.length) : String(snap.jobs.length);
+    this.els.jobPip.textContent = String(readyJobs.length);
     this.els.jobBtn.classList.toggle('ready', readyJobs.length > 0);
     this.els.shop.dataset.jobs = readyJobs.length ? '1' : '0';
     if (readyJobs.length) {
@@ -887,11 +956,13 @@ export class Shell {
       return;
     }
     this._jobsSig = sig;
-    this.els.jobs.innerHTML = snap.jobs
-      .map((job, index) => {
-        const ready = job.progress >= job.amount;
-        const pct = Math.round((job.progress / job.amount) * 100);
-        return `
+    this.els.jobs.innerHTML =
+      `<button type="button" class="ghost jobs-back" data-jobs-back="1">Back to upgrades</button>` +
+      snap.jobs
+        .map((job, index) => {
+          const ready = job.progress >= job.amount;
+          const pct = Math.round((job.progress / job.amount) * 100);
+          return `
           <article class="job-card${ready ? ' ready' : ''}">
             <div class="upgrade-head">
               <h3>${job.label}</h3>
@@ -902,8 +973,8 @@ export class Shell {
             <button type="button" data-claim="${index}" ${ready ? '' : 'disabled'}>${ready ? 'Claim pay' : 'In progress'}</button>
           </article>
         `;
-      })
-      .join('');
+        })
+        .join('');
   }
 
   _updateEvent(snap) {
