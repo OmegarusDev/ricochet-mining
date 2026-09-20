@@ -26,7 +26,7 @@ If an older home-screen icon still shows the clock, remove it and install again 
 
 ## Loop
 
-**Laser** — tap a rock. A red bolt fires from the pad; ore drops when the rock shatters. Laser Emitter starts at **5 damage**; Laser Cadence starts at **2.00 s**. **Drills** — paid kinetic ships. Launch cost is `$14 + $7 × drills already in play`. Walls bounce them without hull loss. Rocks trade HP. **Rebound** (Drills tab, after Elastic Plating) is hidden until it unlocks: then a wall bounce charges the next rock hit. **Haul** — gold haulers dump at the pad; unclaimed chips are dim. **Scanners** — rock cap, spawn rate, and Survey Grid (claim square size). **Claim** — sector warps. Jobs pay from the HUD **Jobs** pip, not Settings.
+**Laser** — tap a rock. A red bolt fires from the pad; ore drops when the rock shatters. Laser Emitter starts at **5 damage**; Laser Cadence starts at **2.00 s**. **Drills** — paid kinetic ships. Launch cost is `$20 + $7 × drills already in play`. Walls bounce them without hull loss. Rocks trade HP. **Rebound** (Drills tab, after Elastic Plating) is hidden until it unlocks: then a wall bounce charges the next rock hit. **Haul** — gold haulers dump at the pad; unclaimed chips are dim. **Scanners** — rock cap, spawn rate, and Survey Grid (claim square size). **Claim** — sector warps. Jobs pay from the HUD **Jobs** pip, not Settings.
 
 A new player does not need this file. Field tips cover shatter → pad → peek buy → launch. With the sheet collapsed, tips sit under the claim. With Upgrades open they overlay the field so the claim stays large.
 

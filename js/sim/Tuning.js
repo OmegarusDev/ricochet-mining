@@ -31,7 +31,7 @@ export const TUNING = {
   probeDamageGrowth: 1.22,
   probeSpeedStart: 30,
   probeSpeedPerLevel: 13,
-  startLaunchCost: 14,
+  startLaunchCost: 20,
   launchCostPerSlot: 7,
 
   surveyStart: 400,
