@@ -26,9 +26,11 @@ If an older home-screen icon still shows the clock, remove it and install again 
 
 ## Loop
 
-**Laser** — tap a rock. A red bolt fires from the pad; ore drops when the rock shatters. Laser Emitter starts at **5 damage**; Laser Cadence starts at **2.00 s**. **Drills** — paid kinetic ships. The first drill is **$20**; each drill already in play adds **20%** to the next launch. Walls bounce them without hull loss. Rocks trade HP. **Rebound** (Drills tab, after Elastic Plating) is hidden until it unlocks: then a wall bounce charges the next rock hit. **Haul** — gold haulers dump at the pad; unclaimed chips are dim. **Scanners** — rock cap, spawn rate, and Survey Grid (claim square size). **Claim** — sector warps. Jobs pay from the HUD **Jobs** pip, not Settings.
+**Laser** — tap a rock. A red bolt fires from the pad; ore drops when the rock shatters. Laser Emitter starts at **5 damage**; Laser Cadence starts at **2.00 s**. **Drills** — you start with **0** launch slots. **Drill License** (20 levels) adds one slot each. The first launch is **$20**; each drill already in play adds **20%**. Walls bounce them without hull loss. Rocks trade HP. **Rebound** (Drills tab, after Elastic Plating) is hidden until it unlocks: then a wall bounce charges the next rock hit. **Haul** — gold haulers dump at the pad; unclaimed chips are dim. A hauler that is closer to the pad than to new ore finishes the dump first. **Scanners** — rock cap, spawn rate, and Survey Grid (claim square size). **Claim** — sector warps.
 
-A new player does not need this file. Field tips cover shatter → pad → peek buy → launch. With the sheet collapsed, tips sit under the claim. With Upgrades open they overlay the field so the claim stays large.
+New players get a welcome, then **Jobs**. The first contracts are: test your laser, destroy an asteroid, buy an upgrade, buy a drill license, launch a drill, bounce a wall, unload at the pad, mine 5 more rocks, buy a second license, field two drills at once. After that, Jobs is a rotating board of three contracts. Jobs pay from the HUD **Jobs** pip, not Settings.
+
+A new player does not need this file. With the sheet collapsed, tips sit under the claim. With Upgrades open they overlay the field so the claim stays large.
 
 The claim is a square from **Survey Grid**, not the screen. Drag to pan, pinch or scroll to zoom, and the top-left fit control lines the walls up with the narrow screen edges.
 

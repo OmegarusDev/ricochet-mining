@@ -92,6 +92,7 @@ export class Shell {
       coach: document.getElementById('coach-mark'),
       coachTitle: document.getElementById('coach-title'),
       coachBody: document.getElementById('coach-body'),
+      coachNext: document.getElementById('coach-next'),
       install: document.getElementById('btn-install'),
       installHelp: document.getElementById('install-help'),
       installHelpClose: document.getElementById('install-help-close'),
@@ -168,6 +169,9 @@ export class Shell {
     this.els.jobBtn.addEventListener('click', () => {
       this.sheetOpen = true;
       this.jobsPanel = true;
+      if ((this.engine.state.flags.tutorialStep || 0) === 1) {
+        this.engine.advanceTutorial();
+      }
       this._applySheet();
       this.els.jobBtn.blur();
       this.els.sheetBody.scrollTop = 0;
@@ -303,6 +307,10 @@ export class Shell {
     });
     document.getElementById('coach-skip').addEventListener('click', () => {
       this.engine.skipTutorial();
+      this.update();
+    });
+    this.els.coachNext?.addEventListener('click', () => {
+      this.engine.advanceTutorial();
       this.update();
     });
     document.getElementById('btn-export').addEventListener('click', () => {
@@ -584,18 +592,14 @@ export class Shell {
 
   revealedTabs(snap) {
     const tabs = new Set(['tap']);
-    if (snap.stats.asteroidsBroken > 0 || snap.tutorialStep > 0) {
+    if (snap.stats.asteroidsBroken > 0 || snap.tutorialStep > 0 || (snap.tutorialIndex || 0) >= 1) {
       tabs.add('haul');
       tabs.add('scan');
     }
     if (snap.stats.deposits > 0 || snap.tutorialStep > 1) {
       tabs.add('sector');
     }
-    if (
-      snap.stats.launches > 0 ||
-      snap.credits >= snap.launchCost ||
-      snap.tutorialStep >= 3
-    ) {
+    if (snap.maxDrones > 0 || snap.stats.launches > 0 || (snap.tutorialIndex || 0) >= 3) {
       tabs.add('fleet');
     }
     return tabs;
@@ -961,8 +965,7 @@ export class Shell {
   }
 
   _updateDeploy(snap) {
-    const unlocked =
-      snap.stats.launches > 0 || snap.credits >= snap.launchCost || snap.tutorialStep >= 3;
+    const unlocked = snap.maxDrones > 0;
     this.els.deploy.classList.toggle('hidden', !unlocked);
     const atCap = snap.drones >= snap.maxDrones;
     const cost = snap.launchCost;
@@ -1034,6 +1037,7 @@ export class Shell {
               <span class="job-pay">$${formatCredits(job.reward)}</span>
             </div>
             <p class="upgrade-meta">${Math.floor(job.progress)} / ${job.amount} · ${pct}%</p>
+            ${job.blurb ? `<p class="upgrade-meta">${job.blurb}</p>` : ''}
             <div class="job-track"><span style="width:${pct}%"></span></div>
             <button type="button" data-claim="${index}" ${ready ? '' : 'disabled'}>${ready ? 'Claim pay' : 'In progress'}</button>
           </article>
@@ -1075,30 +1079,18 @@ export class Shell {
       }
       return;
     }
-    const chipsOnField = this.engine.particles.some((chip) => !chip.collected);
-    let spotlight = '';
-    if (snap.tutorial && snap.tutorial.id === 'tap') {
-      spotlight = 'tap';
-    } else if (snap.tutorial && snap.tutorial.id === 'haul') {
-      spotlight = chipsOnField ? 'haul' : 'tap';
-    } else if (snap.tutorial && snap.tutorial.id === 'upgrade') {
-      spotlight = 'buy';
-      if (!this.sheetOpen && !this._openedForPick) {
-        this.sheetOpen = true;
-        this._openedForPick = true;
-        this._applySheet();
-      }
-    } else if (snap.tutorial && snap.tutorial.id === 'probe') {
-      spotlight = 'launch';
-    }
-    this.els.canvasWrap.dataset.coach = spotlight === 'launch' ? '' : spotlight;
+    const spotlight = snap.tutorial.id === 'jobs' ? 'jobs' : '';
+    this.els.canvasWrap.dataset.coach = '';
     if (this.els.playfield) {
-      this.els.playfield.dataset.coach = spotlight === 'launch' ? '' : spotlight;
+      this.els.playfield.dataset.coach = '';
     }
     this.els.app.dataset.coach = spotlight;
     this.els.coach.classList.remove('hidden');
     this.els.coachTitle.textContent = snap.tutorial.title;
     this.els.coachBody.textContent = snap.tutorial.body;
+    if (this.els.coachNext) {
+      this.els.coachNext.classList.toggle('hidden', snap.tutorial.next === false);
+    }
   }
 
   showOffline(offline) {

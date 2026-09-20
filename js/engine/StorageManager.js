@@ -1,5 +1,5 @@
 import { derivedStats, zeroUpgrades } from '../ui/Upgrades.js';
-import { emptyJobs, fillJobs } from '../content/Campaign.js';
+import { emptyJobs, fillJobs, TUTORIAL_JOBS, TUTORIAL_STEPS } from '../content/Campaign.js';
 
 export const SAVE_KEY = 'RICOCHET_MINING_SAVE_V4';
 export const LEGACY_KEYS = ['RICOCHET_MINING_SAVE_V3', 'RICOCHET_MINING_SAVE_V2'];
@@ -32,12 +32,16 @@ export function defaultState() {
       bankHits: 0,
       maxCombo: 0,
       upgradesBought: 0,
-      jobsCompleted: 0
+      jobsCompleted: 0,
+      drillLicenses: 0,
+      maxLiveDrones: 0
     },
     flags: {
       tapped: false,
       tutorialStep: 0,
-      seenBank: false
+      seenBank: false,
+      zeroFleetStart: true,
+      jobsTutorialV2: true
     },
     jobs: emptyJobs(),
     milestones: []
@@ -59,9 +63,37 @@ function mergeState(raw) {
     settings: { ...base.settings, ...(raw.settings || {}) },
     stats: { ...base.stats, ...(raw.stats || {}) },
     flags: { ...base.flags, ...(raw.flags || {}) },
-    jobs: raw.jobs && Array.isArray(raw.jobs.slots) ? raw.jobs : emptyJobs(),
+    jobs: raw.jobs && Array.isArray(raw.jobs.slots) ? { ...emptyJobs(), ...raw.jobs } : emptyJobs(),
     milestones: Array.isArray(raw.milestones) ? raw.milestones : []
   };
+  merged.stats.drillLicenses = merged.stats.drillLicenses || merged.upgrades.drone_max_count || 0;
+  if (!merged.flags.zeroFleetStart) {
+    merged.flags.zeroFleetStart = true;
+    if (
+      (merged.upgrades.drone_max_count || 0) === 0 &&
+      ((merged.stats.launches || 0) > 0 || (merged.stats.taps || 0) > 8)
+    ) {
+      merged.upgrades.drone_max_count = 1;
+      merged.stats.drillLicenses = Math.max(1, merged.stats.drillLicenses || 0);
+    }
+  }
+  if (!merged.flags.jobsTutorialV2) {
+    merged.flags.jobsTutorialV2 = true;
+    const oldDone =
+      (raw.flags?.tutorialStep || 0) >= 4 ||
+      (merged.stats.launches || 0) > 0 ||
+      (merged.stats.jobsCompleted || 0) > 0;
+    if (oldDone) {
+      merged.jobs.tutorialIndex = TUTORIAL_JOBS.length;
+      merged.flags.tutorialStep = TUTORIAL_STEPS.length;
+    }
+  }
+  if (typeof merged.jobs.tutorialIndex !== 'number') {
+    merged.jobs.tutorialIndex = 0;
+  }
+  if (merged.jobs.tutorialIndex >= 7) {
+    merged.jobs.tutorialIndex = TUTORIAL_JOBS.length;
+  }
   fillJobs(merged);
   return merged;
 }
@@ -142,7 +174,8 @@ export const StorageManager = {
       jobs: {
         slots: (state.jobs?.slots || []).map((job) => ({ ...job })),
         completed: state.jobs?.completed || 0,
-        nextEvent: state.jobs?.nextEvent || 90
+        nextEvent: state.jobs?.nextEvent || 90,
+        tutorialIndex: state.jobs?.tutorialIndex || 0
       },
       milestones: [...(state.milestones || [])]
     };

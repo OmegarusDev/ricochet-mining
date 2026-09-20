@@ -874,6 +874,12 @@ body {
   line-height: 1.4;
 }
 
+#coach-actions {
+  display: flex;
+  gap: 8px;
+}
+
+#coach-next,
 #coach-skip {
   border: 1px solid var(--line);
   background: #243044;
@@ -885,6 +891,16 @@ body {
   min-height: 44px;
   border-radius: 8px;
   pointer-events: auto;
+}
+
+#coach-next {
+  border-color: var(--cyan);
+  background: #123044;
+  color: var(--cyan);
+}
+
+#app[data-coach='jobs'] #btn-jobs {
+  box-shadow: 0 0 0 3px rgba(94, 234, 212, 0.7), 0 8px 24px rgba(6, 182, 212, 0.28);
 }
 
 .job-pay {

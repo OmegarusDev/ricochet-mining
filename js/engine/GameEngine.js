@@ -20,7 +20,8 @@ import {
   fillJobs,
   jobLabel,
   jobProgress,
-  rollEvent
+  rollEvent,
+  skipOnboarding
 } from '../content/Campaign.js';
 
 export class GameEngine {
@@ -484,7 +485,7 @@ export class GameEngine {
   }
 
   deployDrone(force = false) {
-    if (this.drones.length >= this.stats.maxDrones) {
+    if (this.stats.maxDrones <= 0 || this.drones.length >= this.stats.maxDrones) {
       return false;
     }
     if (!force && this.manualCooldown > 0) {
@@ -514,9 +515,6 @@ export class GameEngine {
       ? this.stats.autoDeployInterval
       : this.autoDeployTimer;
     this.state.stats.launches += 1;
-    if (this.state.flags.tutorialStep === 3) {
-      this.state.flags.tutorialStep = 4;
-    }
     this.sound.playLaunch();
     this._checkMilestones();
     this.markDirty();
@@ -544,10 +542,10 @@ export class GameEngine {
     this.state.credits -= cost;
     this.state.upgrades[upgradeId] = level + 1;
     this.state.stats.upgradesBought += 1;
-    this.refreshStats();
-    if (this.state.flags.tutorialStep === 2) {
-      this.state.flags.tutorialStep = 3;
+    if (upgradeId === 'drone_max_count') {
+      this.state.stats.drillLicenses = (this.state.stats.drillLicenses || 0) + 1;
     }
+    this.refreshStats();
     this.sound.playPurchase();
     this._checkMilestones();
     fillJobs(this.state);
@@ -567,6 +565,9 @@ export class GameEngine {
     this.state.stats.jobsCompleted = this.state.jobs.completed;
     this.pushToast(`Contract paid · $${formatCredits(job.reward)}`);
     this.state.jobs.slots.splice(index, 1);
+    if (job.tutorial) {
+      this.state.jobs.tutorialIndex = (this.state.jobs.tutorialIndex || 0) + 1;
+    }
     fillJobs(this.state);
     this.sound.playJob();
     this._checkMilestones();
@@ -627,12 +628,26 @@ export class GameEngine {
   }
 
   skipTutorial() {
-    this.state.flags.tutorialStep = TUTORIAL_STEPS.length;
+    skipOnboarding(this.state);
+    fillJobs(this.state);
     this.markDirty();
+  }
+
+  advanceTutorial() {
+    const step = this.state.flags.tutorialStep || 0;
+    if (step < TUTORIAL_STEPS.length) {
+      this.state.flags.tutorialStep = step + 1;
+      this.markDirty();
+    }
   }
 
   replayTutorial() {
     this.state.flags.tutorialStep = 0;
+    if (!this.state.jobs) {
+      this.state.jobs = { slots: [], completed: 0, nextEvent: 90, tutorialIndex: 0 };
+    }
+    this.state.jobs.tutorialIndex = 0;
+    fillJobs(this.state);
     this.hint = true;
     this.markDirty();
   }
@@ -669,6 +684,7 @@ export class GameEngine {
       stats: this.state.stats,
       jobs,
       jobsCompleted: this.state.jobs.completed,
+      tutorialIndex: this.state.jobs.tutorialIndex || 0,
       event: this.event && this.event.ttl > 0 ? this.event : null,
       tutorialStep: this.state.flags.tutorialStep,
       tutorial: TUTORIAL_STEPS[this.state.flags.tutorialStep] || null,
@@ -684,6 +700,7 @@ export class GameEngine {
 
   _spawnProbe() {
     this.drones.push(launchMiningDrone(this.stats, this.playfield));
+    this.state.stats.maxLiveDrones = Math.max(this.state.stats.maxLiveDrones || 0, this.drones.length);
   }
 
   _maybeLeakOre(asteroid, origin) {
@@ -746,9 +763,6 @@ export class GameEngine {
       );
       this.state.stats.asteroidsBroken += 1;
       this.hint = false;
-      if (this.state.flags.tutorialStep === 0) {
-        this.state.flags.tutorialStep = 1;
-      }
       const rare = asteroid.tier && ['gold', 'platinum', 'dark', 'void', 'horizon'].includes(asteroid.tier.id);
       if (rare) {
         this.flash = 0.22;
@@ -1074,9 +1088,6 @@ export class GameEngine {
         this._spawnFloat(depot.x, depot.y - 18, `+$${formatCredits(gained)}`, '#f59e0b');
         this.depotPulse = 0.45;
         this.sound.playUnload();
-        if (this.state.flags.tutorialStep === 1) {
-          this.state.flags.tutorialStep = 2;
-        }
         this._checkMilestones();
         this.markDirty();
       }

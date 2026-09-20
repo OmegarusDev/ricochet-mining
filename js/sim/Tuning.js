@@ -81,7 +81,7 @@ export function probeSpeed(level) {
 }
 
 export function probeSlots(level) {
-  return Math.min(TUNING.probeCap, 1 + Math.max(0, level));
+  return Math.min(TUNING.probeCap, Math.max(0, level));
 }
 
 export function haulerSpeed(level) {

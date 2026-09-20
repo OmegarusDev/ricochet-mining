@@ -1,23 +1,107 @@
 export const TUTORIAL_STEPS = [
   {
-    id: 'tap',
-    title: 'Shatter a rock',
-    body: 'Tap a rock. A bolt fires from the pad.'
+    id: 'welcome',
+    title: 'Ricochet Mining Co.',
+    body: 'Welcome to Ricochet Mining Co. You have been contracted to mine asteroids in this sector of space. Shatter rock, haul chips to the REFINERY pad, and spend the take on better kit. HQ posts your work as contracts.',
+    next: true
   },
   {
-    id: 'haul',
-    title: 'Get paid',
-    body: 'Gold haulers dump at the REFINERY pad.'
+    id: 'jobs',
+    title: 'Open Jobs',
+    body: 'Start by opening Jobs on the top bar. That is where HQ pays you.',
+    next: false
   },
   {
-    id: 'upgrade',
-    title: 'Buy a laser',
-    body: 'The sheet has your next buy.'
+    id: 'good',
+    title: 'Good.',
+    body: 'Finish a contract, then Claim pay. Your first job is already on the board.',
+    next: true
+  }
+];
+
+export const TUTORIAL_JOBS = [
+  {
+    id: 'tut_laser',
+    verb: 'Test your laser',
+    stat: 'taps',
+    amounts: [1],
+    reward: () => 8,
+    blurb: 'Tap a rock. A red bolt fires from the pad.'
   },
   {
-    id: 'probe',
-    title: 'Send a drill',
-    body: 'Rocks trade hull. Walls do not.'
+    id: 'tut_break',
+    verb: 'Destroy an asteroid',
+    stat: 'asteroidsBroken',
+    amounts: [1],
+    reward: () => 12,
+    blurb: 'Keep firing until it splits. Ore drops on the shatter.'
+  },
+  {
+    id: 'tut_upgrade',
+    verb: 'Buy an upgrade',
+    stat: 'upgradesBought',
+    amounts: [1],
+    reward: () => 10,
+    blurb: 'Open Upgrades or tap buy cheapest on the peek bar.'
+  },
+  {
+    id: 'tut_license',
+    verb: 'Buy a drill license',
+    stat: 'drillLicenses',
+    amounts: [1],
+    reward: () => 16,
+    blurb: 'Drills tab: Drill License. That is your first launch slot.'
+  },
+  {
+    id: 'tut_launch',
+    verb: 'Launch a drill',
+    stat: 'launches',
+    amounts: [1],
+    reward: () => 12,
+    blurb: 'Buy Drill on the peek bar. Rocks trade hull. Walls do not.'
+  },
+  {
+    id: 'tut_wall',
+    verb: 'Bounce a wall',
+    stat: 'wallBounces',
+    amounts: [1],
+    reward: () => 10,
+    blurb: 'Let the drill hit a claim wall. Walls bounce free. Rocks are what cost hull.',
+    fromNow: true
+  },
+  {
+    id: 'tut_dump',
+    verb: 'Unload at the pad',
+    stat: 'deposits',
+    amounts: [1],
+    reward: () => 14,
+    blurb: 'Gold haulers dump chips at REFINERY. Claim this when a load lands.'
+  },
+  {
+    id: 'tut_mine5',
+    verb: 'Mine asteroids',
+    stat: 'asteroidsBroken',
+    amounts: [5],
+    reward: () => 20,
+    blurb: 'Five more rocks. Laser or drill, HQ does not care.',
+    fromNow: true
+  },
+  {
+    id: 'tut_license2',
+    verb: 'Buy a second license',
+    stat: 'drillLicenses',
+    amounts: [2],
+    reward: () => 18,
+    blurb: 'One more Drill License. You cannot field two birds on a single slot.'
+  },
+  {
+    id: 'tut_pair',
+    verb: 'Field two drills',
+    stat: 'maxLiveDrones',
+    amounts: [2],
+    reward: () => 22,
+    blurb: 'Launch a second drill while the first is still alive. The next launch costs 20% more.',
+    fromNow: true
   }
 ];
 
@@ -154,7 +238,6 @@ export const EVENT_DEFS = [
 ];
 
 export const MILESTONES = [
-  { id: 'first_tap', name: 'First swing', test: (s) => s.taps >= 1, reward: 6 },
   { id: 'first_pay', name: 'Payroll', test: (s) => s.deposits >= 1, reward: 10 },
   { id: 'first_buy', name: 'Tooling', test: (s) => s.upgradesBought >= 1, reward: 14 },
   { id: 'first_bird', name: 'First bird', test: (s) => s.launches >= 1, reward: 22 },
@@ -174,15 +257,38 @@ export const MILESTONES = [
 ];
 
 export function emptyJobs() {
-  return { slots: [], completed: 0, nextEvent: 70 + Math.random() * 40 };
+  return { slots: [], completed: 0, nextEvent: 70 + Math.random() * 40, tutorialIndex: 0 };
+}
+
+export function allJobDefs() {
+  return [...TUTORIAL_JOBS, ...JOB_DEFS];
+}
+
+export function jobById(id) {
+  return allJobDefs().find((item) => item.id === id) || null;
 }
 
 export function jobLabel(job) {
-  const def = JOB_DEFS.find((item) => item.id === job.defId);
+  const def = jobById(job.defId);
   if (!def) {
     return 'Contract';
   }
   return `${def.verb} · ${job.amount}`;
+}
+
+export function onboardingComplete(state) {
+  return (
+    (state.flags?.tutorialStep || 0) >= TUTORIAL_STEPS.length &&
+    (state.jobs?.tutorialIndex || 0) >= TUTORIAL_JOBS.length
+  );
+}
+
+export function skipOnboarding(state) {
+  state.flags.tutorialStep = TUTORIAL_STEPS.length;
+  if (!state.jobs) {
+    state.jobs = emptyJobs();
+  }
+  state.jobs.tutorialIndex = TUTORIAL_JOBS.length;
 }
 
 function jobSeed(state, avoid) {
@@ -207,12 +313,42 @@ function jobSeed(state, avoid) {
   };
 }
 
+function tutorialJobSeed(state, def) {
+  const amount = def.amounts[0];
+  const baseline = def.fromNow ? Number(state.stats?.[def.stat] || 0) : 0;
+  return {
+    defId: def.id,
+    amount,
+    reward: Math.max(6, Math.floor(def.reward(amount, state.sectorLevel || 1))),
+    baseline,
+    claimed: false,
+    tutorial: true,
+    blurb: def.blurb || ''
+  };
+}
+
 export function fillJobs(state) {
   if (!state.jobs) {
     state.jobs = emptyJobs();
   }
+  if (typeof state.jobs.tutorialIndex !== 'number') {
+    state.jobs.tutorialIndex = 0;
+  }
+  const idx = state.jobs.tutorialIndex;
+  if (idx < TUTORIAL_JOBS.length) {
+    const def = TUTORIAL_JOBS[idx];
+    const current = state.jobs.slots[0];
+    if (!current || current.defId !== def.id) {
+      state.jobs.slots = [tutorialJobSeed(state, def)];
+    } else {
+      state.jobs.slots = [current];
+    }
+    return state.jobs;
+  }
   const rebound = (state.upgrades?.bank_shot || 0) > 0;
-  const slots = state.jobs.slots.filter((job) => job && (rebound || job.defId !== 'banks'));
+  const slots = state.jobs.slots.filter(
+    (job) => job && !job.tutorial && (rebound || job.defId !== 'banks')
+  );
   while (slots.length < 3) {
     const avoid = slots.map((job) => job.defId);
     slots.push(jobSeed(state, avoid));
@@ -222,12 +358,12 @@ export function fillJobs(state) {
 }
 
 export function jobProgress(job, stats) {
-  const def = JOB_DEFS.find((item) => item.id === job.defId);
+  const def = jobById(job.defId);
   if (!def) {
     return 0;
   }
   const current = Number(stats[def.stat] || 0);
-  return Math.max(0, Math.min(job.amount, current - job.baseline));
+  return Math.max(0, Math.min(job.amount, current - (job.baseline || 0)));
 }
 
 export function rollEvent(state) {

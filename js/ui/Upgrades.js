@@ -202,12 +202,12 @@ export const UPGRADE_DEFS = [
 
   u({
     id: 'drone_max_count',
-    name: 'Max Drill Fleet',
+    name: 'Drill License',
     tab: 'fleet',
     group: 'Drills',
-    baseCost: 48,
+    baseCost: 22,
     scale: 1.88,
-    maxLevel: TUNING.probeCap - 1,
+    maxLevel: TUNING.probeCap,
     effect: (level) => probeSlots(level),
     describe: (level) => `Max drills: ${probeSlots(level)}`
   }),
@@ -334,7 +334,7 @@ export const UPGRADE_DEFS = [
     effect: (level) => (level <= 0 ? 0 : Math.max(0.4, 11 - (level - 1) * 0.65)),
     describe: (level) =>
       level <= 0
-        ? 'Locked until Max Drill Fleet 3 — still pays each launch'
+        ? 'Locked until Drill License 3 — still pays each launch'
         : `Auto-launch every ${Math.max(0.4, 11 - (level - 1) * 0.65).toFixed(2)} s (pays fee)`
   }),
   u({
@@ -1198,7 +1198,7 @@ export function applyTuningToUpgrades() {
   spawn.scale = TUNING.spawnScale;
   spawn.maxLevel = TUNING.spawnMaxLevel;
   const fleet = UPGRADE_BY_ID.drone_max_count;
-  fleet.maxLevel = Math.max(1, TUNING.probeCap - 1);
+  fleet.maxLevel = Math.max(1, TUNING.probeCap);
   const survey = UPGRADE_BY_ID.survey_range;
   survey.baseCost = TUNING.surveyBaseCost;
   survey.scale = TUNING.surveyScale;

@@ -64,6 +64,10 @@ export class CollectorDrone {
       this.state = nearDepot ? CollectorState.UNLOADING : CollectorState.RETURNING;
       this._clearClaim();
       this._seek(this.depotTarget(depot), dt, this.maxSpeed * returnBoost);
+    } else if (this.used > 0 && this._depotCloserThanOre(live, depot)) {
+      this.state = nearDepot ? CollectorState.UNLOADING : CollectorState.RETURNING;
+      this._clearClaim();
+      this._seek(this.depotTarget(depot), dt, this.maxSpeed * returnBoost);
     } else if (live.length === 0 && this.used === 0) {
       this.state = CollectorState.IDLE;
       this._seek(this._idleTarget(playfield, depot), dt, this.maxSpeed * 0.28);
@@ -85,6 +89,19 @@ export class CollectorDrone {
       depot.x + Math.sin(this.hoverTime) * 28,
       depot.y - 36 + Math.cos(this.hoverTime * 0.7) * 10
     );
+  }
+
+  _depotCloserThanOre(particles, depot) {
+    const pad = this.depotTarget(depot);
+    const padDist = this.pos.dist(pad);
+    let nearest = Infinity;
+    for (const particle of particles) {
+      const d = this.pos.dist(particle.pos);
+      if (d < nearest) {
+        nearest = d;
+      }
+    }
+    return padDist <= nearest;
   }
 
   _clearClaim() {

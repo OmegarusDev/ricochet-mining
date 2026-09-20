@@ -15,7 +15,7 @@
   <link rel="manifest" href="./manifest.json" />
   <link rel="icon" href="./icons/favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
-  <link rel="stylesheet" href="./css/style.css?v=31" />
+  <link rel="stylesheet" href="./css/style.css?v=32" />
   <style>
     html, body, #app, #canvas-wrap, #playfield, #game-canvas {
       background: #070d18;
@@ -55,7 +55,10 @@
       <div id="coach-mark" class="hidden">
         <strong id="coach-title"></strong>
         <p id="coach-body"></p>
-        <button id="coach-skip" type="button">Skip</button>
+        <div id="coach-actions">
+          <button id="coach-next" type="button">Next</button>
+          <button id="coach-skip" type="button">Skip</button>
+        </div>
       </div>
     </div>
 
@@ -216,6 +219,6 @@
       document.body.appendChild(box);
     });
   </script>
-  <script type="module" src="./js/main.js?v=31"></script>
+  <script type="module" src="./js/main.js?v=32"></script>
 </body>
 </html>
