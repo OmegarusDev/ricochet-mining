@@ -1327,16 +1327,30 @@ export class GameEngine {
   }
 }
 
+function compactCredits(amount, suffix) {
+  if (amount >= 100) {
+    return `${Math.floor(amount)}${suffix}`;
+  }
+  if (amount >= 10) {
+    return `${Math.floor(amount)}${suffix}`;
+  }
+  const rounded = amount.toFixed(1);
+  if (Number(rounded) >= 10) {
+    return `10${suffix}`;
+  }
+  return `${rounded}${suffix}`;
+}
+
 export function formatCredits(value) {
   const n = Math.floor(value);
   if (n >= 1e9) {
-    return `${(n / 1e9).toFixed(2)}B`;
+    return compactCredits(n / 1e9, 'B');
   }
   if (n >= 1e6) {
-    return `${(n / 1e6).toFixed(2)}M`;
+    return compactCredits(n / 1e6, 'M');
   }
   if (n >= 1e3) {
-    return `${Math.floor(n / 1e3)}K`;
+    return compactCredits(n / 1e3, 'K');
   }
   return String(n);
 }
