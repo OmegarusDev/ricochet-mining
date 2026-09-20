@@ -43,12 +43,64 @@ function pinLayoutViewport() {
   }
 }
 
-function lockLayoutViewport() {
+function syncAppFrame() {
   pinLayoutViewport();
-  window.addEventListener('scroll', pinLayoutViewport, { passive: true });
-  window.addEventListener('focusin', pinLayoutViewport);
-  window.visualViewport?.addEventListener('scroll', pinLayoutViewport, { passive: true });
-  window.visualViewport?.addEventListener('resize', pinLayoutViewport, { passive: true });
+  const app = document.getElementById('app');
+  if (!app) {
+    return;
+  }
+  const vv = window.visualViewport;
+  const width = Math.max(1, Math.floor(vv ? vv.width : window.innerWidth));
+  const height = Math.max(1, Math.floor(vv ? vv.height : window.innerHeight));
+  const left = vv ? Math.round(vv.offsetLeft) : 0;
+  const top = vv ? Math.round(vv.offsetTop) : 0;
+  app.style.left = `${left}px`;
+  app.style.top = `${top}px`;
+  app.style.right = 'auto';
+  app.style.bottom = 'auto';
+  app.style.width = `${width}px`;
+  app.style.height = `${height}px`;
+}
+
+function preventPagePinch(event) {
+  if (!event.touches || event.touches.length < 2) {
+    return;
+  }
+  const canvas = document.getElementById('game-canvas');
+  if (canvas && event.target && canvas.contains(event.target)) {
+    return;
+  }
+  event.preventDefault();
+}
+
+function lockLayoutViewport() {
+  syncAppFrame();
+  window.addEventListener('scroll', syncAppFrame, { passive: true });
+  window.addEventListener('resize', syncAppFrame);
+  window.addEventListener('focusin', syncAppFrame);
+  window.visualViewport?.addEventListener('scroll', syncAppFrame, { passive: true });
+  window.visualViewport?.addEventListener('resize', syncAppFrame);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      syncAppFrame();
+    }
+  });
+  document.addEventListener('touchmove', preventPagePinch, { passive: false });
+  document.addEventListener('gesturestart', (event) => event.preventDefault());
+  document.addEventListener('gesturechange', (event) => event.preventDefault());
+  document.addEventListener(
+    'wheel',
+    (event) => {
+      if (event.ctrlKey || event.metaKey) {
+        const canvas = document.getElementById('game-canvas');
+        if (canvas && event.target && canvas.contains(event.target)) {
+          return;
+        }
+        event.preventDefault();
+      }
+    },
+    { passive: false }
+  );
 }
 
 export function registerPwa() {

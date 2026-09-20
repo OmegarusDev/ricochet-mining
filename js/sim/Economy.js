@@ -262,10 +262,4 @@ export function catalogCosts() {
   return { rows, byTab };
 }
 
-export function hoursToDensity(targetRocks, tapping = true) {
-  const sim = simulateGreedy({ hours: 200, tapping, expand: false });
-  const hit = sim.log.find((row) => row.rocks >= targetRocks);
-  return hit ? hit.hours : null;
-}
-
 export { SECTORS, TUNING };

@@ -8,6 +8,8 @@ export class SoundEngine {
     this._unlockBound = this.unlock.bind(this);
     this._lastHit = -10;
     this._lastBreak = -10;
+    this._lastCollect = -10;
+    this._lastBounce = -10;
     this._gravelHits = null;
     this._gravelBreaks = null;
   }
@@ -142,7 +144,7 @@ export class SoundEngine {
     this.playHit(crit ? 40 : 10);
   }
 
-  playProbeCrit() {
+  playDrillCrit() {
     this.playHit(80);
   }
 
@@ -159,11 +161,27 @@ export class SoundEngine {
   }
 
   playCollect() {
+    if (!this._ready()) {
+      return;
+    }
+    const t = this.audioCtx.currentTime;
+    if (t - this._lastCollect < 0.045) {
+      return;
+    }
+    this._lastCollect = t;
     this._beep(880, 0.045, 0.07, 0, 'triangle');
     this._beep(1320, 0.03, 0.05, 0.02, 'sine');
   }
 
   playBounce() {
+    if (!this._ready()) {
+      return;
+    }
+    const t = this.audioCtx.currentTime;
+    if (t - this._lastBounce < 0.05) {
+      return;
+    }
+    this._lastBounce = t;
     this._beep(620 + Math.random() * 80, 0.05, 0.11, 0, 'square');
     this._beep(980, 0.04, 0.06, 0.02, 'sine');
   }

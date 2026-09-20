@@ -51,7 +51,7 @@ export class CollectorDrone {
 
   update(dt, playfield, particles, depot, stats) {
     this.hoverTime += dt;
-    const live = particles.filter((p) => !p.collected);
+    const live = particles;
     const nearDepot = this.pos.dist(this.depotTarget(depot)) <= depot.r;
 
     this.steerRate = stats.steerRate || 8;

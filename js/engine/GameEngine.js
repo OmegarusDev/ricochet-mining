@@ -145,13 +145,17 @@ export class GameEngine {
     const prevCy = this.view.cy;
     const prevW = this.view.cssW;
     const prevH = this.view.cssH;
+    const fieldChanged =
+      this._viewFieldW !== this.playfield.width || this._viewFieldH !== this.playfield.height;
+    this._viewFieldW = this.playfield.width;
+    this._viewFieldH = this.playfield.height;
     this.view.cssW = displayWidth;
     this.view.cssH = displayHeight;
     this.canvas.style.width = '100%';
     this.canvas.style.height = '100%';
     const wasFitted = this.isViewFitted(prevScale, prevCx, prevCy, prevW, prevH);
     const sizeJump = Math.max(Math.abs(displayWidth - (prevW || 0)), Math.abs(displayHeight - (prevH || 0)));
-    if (reset || prevCx == null || prevCy == null || (wasFitted && sizeJump > 80)) {
+    if (reset || fieldChanged || prevCx == null || prevCy == null || (wasFitted && sizeJump > 80)) {
       this.resetView();
     } else {
       this.view.scale = prevScale;
@@ -308,11 +312,15 @@ export class GameEngine {
     this.asteroids = this.asteroids.filter((asteroid) => !asteroid.isDestroyed());
 
     const depot = this.depot();
+    const loose = [];
     for (const particle of this.particles) {
       particle.isMagnetized = false;
+      if (!particle.collected) {
+        loose.push(particle);
+      }
     }
     for (const collector of this.collectors) {
-      collector.update(dt, this.playfield, this.particles, depot, this.stats);
+      collector.update(dt, this.playfield, loose, depot, this.stats);
     }
     for (const particle of this.particles) {
       particle.update(dt, this.playfield);
@@ -503,7 +511,8 @@ export class GameEngine {
       return false;
     }
     this.state.credits -= cost;
-    this._spawnProbe();
+    this._spawnDrill();
+    this.state.stats.launches += 1;
     if (
       this.stats.extraLaunchChance > 0 &&
       this.drones.length < this.stats.maxDrones &&
@@ -512,7 +521,8 @@ export class GameEngine {
       const extraCost = Math.max(2, Math.floor(cost * 0.5));
       if (this.state.credits >= extraCost) {
         this.state.credits -= extraCost;
-        this._spawnProbe();
+        this._spawnDrill();
+        this.state.stats.launches += 1;
         this.pushToast('Twin rails — second drill away');
       }
     }
@@ -520,7 +530,6 @@ export class GameEngine {
     this.autoDeployTimer = this.stats.autoLaunchEnabled
       ? this.stats.autoDeployInterval
       : this.autoDeployTimer;
-    this.state.stats.launches += 1;
     this.sound.playLaunch();
     this._checkMilestones();
     this.markDirty();
@@ -602,6 +611,7 @@ export class GameEngine {
       current: this.state.upgrades
     });
     this.state.credits = keep + stipend;
+    this.state.stats.drillLicenses = this.state.upgrades.drone_max_count || 0;
     this.drones = [];
     this.asteroids = [];
     this.particles = [];
@@ -651,12 +661,6 @@ export class GameEngine {
 
   replayTutorial() {
     this.state.flags.tutorialStep = 0;
-    if (!this.state.jobs) {
-      this.state.jobs = { slots: [], completed: 0, nextEvent: 90, tutorialIndex: 0 };
-    }
-    this.state.jobs.tutorialIndex = 0;
-    fillJobs(this.state);
-    this.hint = true;
     this.markDirty();
   }
 
@@ -706,7 +710,7 @@ export class GameEngine {
     this.renderer.draw();
   }
 
-  _spawnProbe() {
+  _spawnDrill() {
     this.drones.push(launchMiningDrone(this.stats, this.playfield));
     this.state.stats.maxLiveDrones = Math.max(this.state.stats.maxLiveDrones || 0, this.drones.length);
   }
@@ -741,7 +745,7 @@ export class GameEngine {
         label = `${damage} OVER`;
         color = '#c4b5fd';
       } else if (meta.bank && meta.crit) {
-        label = `${damage} BANK CRIT`;
+        label = `${damage} REBOUND CRIT`;
         color = '#fde68a';
       } else if (meta.crit) {
         label = `${damage} CRIT`;
@@ -785,7 +789,7 @@ export class GameEngine {
       this._maybeLeakOre(asteroid, origin);
       if (!meta.tap) {
         if (meta.crit) {
-          this.sound.playProbeCrit();
+          this.sound.playDrillCrit();
         } else {
           this.sound.playHit(damage);
         }

@@ -4,6 +4,7 @@ import {
   UPGRADE_DEFS,
   groupedUpgrades,
   isUnlocked,
+  requirementList,
   requirementText,
   sectorUnlockNeed,
   upgradeCost
@@ -123,17 +124,20 @@ export class Shell {
     const observer = new ResizeObserver(() => this.fitCanvas());
     observer.observe(this.els.playfield || this.els.canvasWrap);
     window.addEventListener('resize', () => this.fitCanvas());
+    window.visualViewport?.addEventListener('resize', () => this.fitCanvas());
     this.fitCanvas();
   }
 
   fitCanvas() {
-    const rect = (this.els.playfield || this.els.canvasWrap).getBoundingClientRect();
-    if (rect.width < 32 || rect.height < 32) {
+    const el = this.els.playfield || this.els.canvasWrap;
+    const width = el.clientWidth;
+    const height = el.clientHeight;
+    if (width < 32 || height < 32) {
       return;
     }
     const reset = this.engine.fitNeeded === true;
     this.engine.fitNeeded = false;
-    this.engine.resizeCanvas(rect.width, rect.height, { reset });
+    this.engine.resizeCanvas(width, height, { reset });
   }
 
   _bind() {
@@ -696,7 +700,7 @@ export class Shell {
     }
     document.getElementById('expand-title').textContent = `Warp to ${next.name}`;
     document.getElementById('expand-copy').textContent =
-      `Tap, fleet, and haul upgrades reset. Company charter stays. Salvage keeps ${Math.round(this.engine.stats.salvageKeep * 100)}% of cash plus any treasury stipend.`;
+      `Laser, drills, and haul upgrades reset. Company charter stays. Salvage keeps ${Math.round(this.engine.stats.salvageKeep * 100)}% of cash plus any treasury stipend.`;
     this._show(this.els.expandModal);
     return true;
   }
@@ -731,7 +735,7 @@ export class Shell {
   _syncSpeedButton() {
     const speed = Number(this.engine.state.settings.gameSpeed) || 1;
     const fast = speed >= 2;
-    this.els.speedHud.textContent = fast ? '2x' : '1x';
+    this.els.speedHud.textContent = speed === 1 ? '1x' : `${speed}x`;
     this.els.speedHud.classList.toggle('on', fast);
     this.els.speedHud.setAttribute('aria-pressed', fast ? 'true' : 'false');
   }
@@ -856,9 +860,11 @@ export class Shell {
       else if (canExpand) status = 'Ready to expand';
       const expandBtn = canExpand
         ? `<button type="button" data-expand="${sector.level}">Expand sector</button>`
-        : sector.level > current
-          ? `<button type="button" disabled>Need $${formatCredits(need)} lifetime</button>`
-          : '';
+        : sector.level === current + 1
+          ? `<button type="button" disabled data-sector-need="${need}">Need $${formatCredits(Math.max(0, need - harvested))} more</button>`
+          : sector.level > current
+            ? `<button type="button" disabled>Need $${formatCredits(need)} lifetime</button>`
+            : '';
       const tiers = sector.tiers.map((t) => `${t.id} ${Math.round(t.weight * 100)}%`).join(', ');
       return `
         <article class="sector-card${isCurrent ? ' current' : ''}${sector.level > current ? ' locked' : ''}">
@@ -952,7 +958,6 @@ export class Shell {
     this._updateCoach(snap);
     this.pollHold();
     if (this.engine.fitNeeded) {
-      this.engine.fitNeeded = false;
       this.fitCanvas();
     }
   }
@@ -1009,7 +1014,7 @@ export class Shell {
   _syncUnlocks(boughtId) {
     let missing = false;
     for (const def of UPGRADE_DEFS) {
-      if (!def.requires || def.requires.id !== boughtId) {
+      if (!requirementList(def).some((req) => req.id === boughtId)) {
         continue;
       }
       if (!document.querySelector(`[data-upgrade="${def.id}"]`)) {
@@ -1028,11 +1033,16 @@ export class Shell {
     const need = next ? sectorUnlockNeed(next, this.engine.stats) : Infinity;
     const ready = Boolean(next && snap.totalOreHarvested >= need);
     const sig = `${this.engine.state.sectorLevel}:${ready}:${next ? next.level : 0}`;
-    if (sig === this._sectorSig) {
+    if (sig !== this._sectorSig) {
+      this._sectorSig = sig;
+      this.renderSectors();
       return;
     }
-    this._sectorSig = sig;
-    this.renderSectors();
+    const btn = this.els.sector.querySelector('[data-sector-need]');
+    if (!btn || ready) {
+      return;
+    }
+    btn.textContent = `Need $${formatCredits(Math.max(0, need - snap.totalOreHarvested))} more`;
   }
 
   _updateLedger(snap) {

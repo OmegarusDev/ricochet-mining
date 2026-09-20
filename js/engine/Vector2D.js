@@ -58,10 +58,6 @@ export class Vector2D {
     return this.x * v.x + this.y * v.y;
   }
 
-  cross(v) {
-    return this.x * v.y - this.y * v.x;
-  }
-
   dist(v) {
     const dx = this.x - v.x;
     const dy = this.y - v.y;
