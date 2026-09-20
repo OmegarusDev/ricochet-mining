@@ -34,12 +34,17 @@ export function defaultState() {
       upgradesBought: 0,
       jobsCompleted: 0,
       drillLicenses: 0,
-      maxLiveDrones: 0
+      maxLiveDrones: 0,
+      viewPan: 0,
+      viewZoom: 0,
+      viewRecenter: 0,
+      viewLessons: 0
     },
     flags: {
       tapped: false,
       tutorialStep: 0,
-      seenBank: false
+      seenBank: false,
+      inductionEnd: false
     },
     jobs: emptyJobs(),
     milestones: []

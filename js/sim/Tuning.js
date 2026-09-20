@@ -38,8 +38,8 @@ export const TUNING = {
   surveyPerLevel: 80,
   surveyCap: 1480,
   surveyMaxLevel: 14,
-  surveyBaseCost: 55,
-  surveyScale: 1.42,
+  surveyBaseCost: 2200,
+  surveyScale: 1.68,
 
   haulerSpeedStart: 14,
   haulerSpeedPerLevel: 11,

@@ -16,6 +16,8 @@ import { TUNING, launchFee } from '../sim/Tuning.js';
 import { Renderer } from '../view/Renderer.js';
 import {
   MILESTONES,
+  TUTORIAL_DONE,
+  TUTORIAL_JOBS,
   TUTORIAL_STEPS,
   fillJobs,
   jobLabel,
@@ -582,6 +584,9 @@ export class GameEngine {
     this.state.jobs.slots.splice(index, 1);
     if (job.tutorial) {
       this.state.jobs.tutorialIndex = (this.state.jobs.tutorialIndex || 0) + 1;
+      if ((this.state.jobs.tutorialIndex || 0) >= TUTORIAL_JOBS.length) {
+        this.state.flags.inductionEnd = true;
+      }
     }
     fillJobs(this.state);
     this.sound.playJob();
@@ -646,21 +651,61 @@ export class GameEngine {
   }
 
   skipTutorial() {
+    if (this.state.flags.inductionEnd) {
+      this.state.flags.inductionEnd = false;
+      this.state.flags.tutorialStep = TUTORIAL_STEPS.length;
+      this.markDirty();
+      return;
+    }
     skipOnboarding(this.state);
     fillJobs(this.state);
     this.markDirty();
   }
 
   advanceTutorial() {
+    if (this.state.flags.inductionEnd) {
+      this.state.flags.inductionEnd = false;
+      this.state.flags.tutorialStep = TUTORIAL_STEPS.length;
+      this.markDirty();
+      return;
+    }
     const step = this.state.flags.tutorialStep || 0;
     if (step < TUTORIAL_STEPS.length) {
       this.state.flags.tutorialStep = step + 1;
+      if (
+        this.state.flags.tutorialStep >= TUTORIAL_STEPS.length &&
+        (this.state.jobs?.tutorialIndex || 0) >= TUTORIAL_JOBS.length
+      ) {
+        this.state.flags.inductionEnd = true;
+      }
       this.markDirty();
     }
   }
 
   replayTutorial() {
     this.state.flags.tutorialStep = 0;
+    this.state.flags.inductionEnd = false;
+    this.markDirty();
+  }
+
+  noteViewAction(kind) {
+    const stats = this.state.stats;
+    let changed = false;
+    if (kind === 'pan' && !stats.viewPan) {
+      stats.viewPan = 1;
+      changed = true;
+    } else if (kind === 'zoom' && !stats.viewZoom) {
+      stats.viewZoom = 1;
+      changed = true;
+    } else if (kind === 'recenter' && !stats.viewRecenter) {
+      stats.viewRecenter = 1;
+      changed = true;
+    }
+    if (!changed) {
+      return;
+    }
+    stats.viewLessons = (stats.viewPan ? 1 : 0) + (stats.viewZoom ? 1 : 0) + (stats.viewRecenter ? 1 : 0);
+    fillJobs(this.state);
     this.markDirty();
   }
 
@@ -699,7 +744,9 @@ export class GameEngine {
       tutorialIndex: this.state.jobs.tutorialIndex || 0,
       event: this.event && this.event.ttl > 0 ? this.event : null,
       tutorialStep: this.state.flags.tutorialStep,
-      tutorial: TUTORIAL_STEPS[this.state.flags.tutorialStep] || null,
+      tutorial: this.state.flags.inductionEnd
+        ? TUTORIAL_DONE
+        : TUTORIAL_STEPS[this.state.flags.tutorialStep] || null,
       toasts: this.toasts,
       rocks: this.asteroids.length,
       maxAsteroids: this.fieldCap()

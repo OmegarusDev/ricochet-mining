@@ -2,7 +2,7 @@ export const TUTORIAL_STEPS = [
   {
     id: 'welcome',
     title: 'Ricochet Mining Co.',
-    body: 'Welcome to Ricochet Mining Co. You have been contracted to mine asteroids in this sector of space. Shatter rock, haul chips to the REFINERY pad, and spend the take on better kit. HQ posts your work as contracts.',
+    body: 'Welcome to Ricochet Mining Co! You have been contracted to mine asteroids in this sector of space. Shatter rock, haul chips to the REFINERY pad, and spend the take on better kit. HQ posts your work as contracts.',
     next: true
   },
   {
@@ -18,6 +18,13 @@ export const TUTORIAL_STEPS = [
     next: true
   }
 ];
+
+export const TUTORIAL_DONE = {
+  id: 'done',
+  title: 'Congratulations',
+  body: 'Your induction is complete. You should know everything you need to make the company proud. You can see these tips again at any time (minus the job payouts) by pressing Replay induction in Settings.',
+  next: true
+};
 
 export const TUTORIAL_JOBS = [
   {
@@ -35,6 +42,22 @@ export const TUTORIAL_JOBS = [
     amounts: [1],
     reward: () => 12,
     blurb: 'Keep firing until it splits. Ore drops on the shatter.'
+  },
+  {
+    id: 'tut_dump',
+    verb: 'Unload at the refinery',
+    stat: 'deposits',
+    amounts: [1],
+    reward: () => 14,
+    blurb: 'Gold haulers dump chips at REFINERY. Claim this when a load lands.'
+  },
+  {
+    id: 'tut_view',
+    verb: 'Learn the claim view',
+    stat: 'viewLessons',
+    amounts: [3],
+    reward: () => 10,
+    blurb: 'Drag to pan. Pinch or scroll to zoom. Double-tap the field to re-centre.'
   },
   {
     id: 'tut_upgrade',
@@ -68,14 +91,6 @@ export const TUTORIAL_JOBS = [
     reward: () => 10,
     blurb: 'Let the drill hit a claim wall. Walls bounce free. Rocks are what cost hull.',
     fromNow: true
-  },
-  {
-    id: 'tut_dump',
-    verb: 'Unload at the pad',
-    stat: 'deposits',
-    amounts: [1],
-    reward: () => 14,
-    blurb: 'Gold haulers dump chips at REFINERY. Claim this when a load lands.'
   },
   {
     id: 'tut_mine5',
@@ -121,7 +136,7 @@ export const JOB_DEFS = [
   },
   {
     id: 'deposits',
-    verb: 'Unload at the pad',
+    verb: 'Unload at the refinery',
     stat: 'deposits',
     amounts: [4, 10, 22, 45, 80],
     reward: (n, sector) => 8 + n * 1.8 * sector
@@ -278,12 +293,14 @@ export function jobLabel(job) {
 export function onboardingComplete(state) {
   return (
     (state.flags?.tutorialStep || 0) >= TUTORIAL_STEPS.length &&
-    (state.jobs?.tutorialIndex || 0) >= TUTORIAL_JOBS.length
+    (state.jobs?.tutorialIndex || 0) >= TUTORIAL_JOBS.length &&
+    !state.flags?.inductionEnd
   );
 }
 
 export function skipOnboarding(state) {
   state.flags.tutorialStep = TUTORIAL_STEPS.length;
+  state.flags.inductionEnd = false;
   if (!state.jobs) {
     state.jobs = emptyJobs();
   }

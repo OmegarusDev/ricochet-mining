@@ -616,7 +616,7 @@ export const UPGRADE_DEFS = [
   }),
   u({
     id: 'survey_range',
-    name: 'Scanners Grid',
+    name: 'Claim Size',
     tab: 'scan',
     group: 'Scanners',
     baseCost: TUNING.surveyBaseCost,
@@ -775,6 +775,73 @@ export const UPGRADE_DEFS = [
     describe: (level) => `Next sector unlock −${(Math.min(0.4, level * 0.05) * 100).toFixed(0)}%`
   })
 ];
+
+const UPGRADE_HELP = {
+  tap_damage: 'Each laser bolt deals this much damage when it hits a rock. Higher damage cracks asteroids in fewer shots.',
+  tap_rate: 'How long you wait between bolts. Lower interval means you can tap again sooner.',
+  tap_radius: 'How close a tap has to be to a rock to lock on. Bigger overlay is more forgiving.',
+  tap_chips: 'Gives a chance for chips to leak off a rock while you are still damaging it, not only when it shatters.',
+  tap_crit: 'Chance for a laser hit to crit and deal extra damage. Separate from drill crits.',
+  tap_splash: 'A portion of laser damage splashes onto nearby rocks.',
+  tap_combo: 'Each tap in a streak adds this bonus to laser damage. Drop the streak and it resets.',
+  tap_soften: 'Extra laser damage against high-HP rocks. The tougher the asteroid, the more this pays.',
+  tap_lucky: 'When Chip Harvest already leaks a chip, this can drop one more.',
+  tap_overcharge: 'Every Nth laser shot detonates for a big damage spike.',
+  tap_pierce: 'How far splash damage reaches after Shockwave Bit is on.',
+  tap_multihit: 'A second nearby rock takes a fraction of the shot. Needs a decent aim overlay.',
+  drone_max_count: 'Each level is one launch slot. You cannot field more live drills than you have licenses.',
+  drone_damage: 'How much hull a drill deals when it rams a rock.',
+  drone_hull: 'Drill hit points. Rocks trade hull. Walls do not.',
+  drone_speed: 'How fast drills fly across the claim.',
+  launch_discount: 'Cuts the cash fee each time you launch a drill.',
+  drone_recoil: 'When a drill rams a rock, it pays this fraction of the damage in hull. Lower is better.',
+  bounce_damp: 'How much speed a drill keeps after a wall bounce. This is not a shield — rocks still cost hull.',
+  probe_crit: 'Chance for a drill ram to crit. Laser crits stay on their own upgrade.',
+  probe_crit_dmg: 'How hard a drill crit hits when Deadeye Core is on.',
+  bank_shot: 'After a wall bounce, the next rock hit deals bonus damage for a short window.',
+  auto_launch: 'Launches a drill on a timer whenever a slot is free. Still pays the launch fee every time.',
+  burst_launch: 'Shortens the delay after you manually buy a drill before you can buy another.',
+  dual_launch: 'Chance to fire a second drill with the launch, at half fee.',
+  scrap_rebate: 'When a drill dies, refund this percent of the fee you paid to launch it.',
+  hull_regen: 'Live drills slowly repair hull while they fly.',
+  guidance: 'Drills curve toward rocks. Higher homing means tighter turns.',
+  chain_shot: 'After hitting a rock, a drill can jump and hit another nearby rock.',
+  probe_mass: 'Bigger drill radius — easier rams, chunkier silhouette.',
+  collector_max: 'How many gold haulers you own. They keep working the claim on their own.',
+  collector_speed: 'How fast haulers fly to chips and back to REFINERY.',
+  collector_magnet: 'How far away a hauler can snap up a chip.',
+  hauler_agility: 'How quickly haulers turn. Helps them line up dumps and pickups.',
+  collector_capacity: 'Chips one hauler can carry before it must dump at REFINERY.',
+  unload_speed: 'How fast a hauler empties chips once it is on the REFINERY pad.',
+  depot_radius: 'How close a hauler has to be to REFINERY before it can dump.',
+  value_seek: 'Haulers prefer richer chips on the ground when this is high.',
+  cargo_compress: 'Bonus cargo capacity, as a percent on top of Cargo Hold.',
+  return_boost: 'Haulers fly faster when they are heading back to dump.',
+  depot_pull: 'Extra magnet strength when a hauler is near REFINERY.',
+  ore_value_mult: 'Multiplies the cash each chip is worth when it dumps. Same chips, more pay.',
+  rich_veins: 'More chips drop when an asteroid fully shatters.',
+  rare_shift: 'Biases new rocks toward rarer, more valuable types. Quality, not quantity.',
+  chip_split: 'More chips when a rock breaks apart. Stacks with Rich Veins.',
+  asteroid_max: 'How many rocks can be on the claim at once.',
+  asteroid_spawn_rate: 'How quickly a new rock drifts in after one leaves.',
+  survey_range: 'Grows the square claim. Bigger field, more room to fly — walls move out.',
+  rock_drift: 'Rocks drift faster across the belt. More motion, more misses if you are sloppy.',
+  salvage_rights: 'Keep this percent of your cash when you warp to the next sector. Permanent.',
+  veteran_picks: 'Permanent laser damage that survives sector warps.',
+  charter_hold: 'Permanent extra cargo space that survives warps.',
+  offline_ops: 'How much of your idle income you keep while the game is closed. Permanent.',
+  starting_capital: 'Cash stipend paid when you expand to a new sector. Permanent.',
+  veteran_hulls: 'Permanent drill HP that survives warps.',
+  veteran_engines: 'Permanent drill speed that survives warps.',
+  veteran_optics: 'Permanent drill crit chance that survives warps.',
+  veteran_tether: 'Permanent hauler magnet range that survives warps.',
+  charter_yield: 'Permanent ore-value multiplier that survives warps.',
+  expansion_scout: 'Cuts how much total ore you need before the next sector unlocks. Permanent.'
+};
+
+for (const def of UPGRADE_DEFS) {
+  def.help = UPGRADE_HELP[def.id] || def.help || '';
+}
 
 export const UPGRADE_BY_ID = Object.fromEntries(UPGRADE_DEFS.map((def) => [def.id, def]));
 

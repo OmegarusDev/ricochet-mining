@@ -15,7 +15,7 @@
   <link rel="manifest" href="./manifest.json" />
   <link rel="icon" href="./icons/favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
-  <link rel="stylesheet" href="./css/style.css?v=44" />
+  <link rel="stylesheet" href="./css/style.css?v=47" />
   <style>
     html, body, #app, #canvas-wrap, #playfield, #game-canvas {
       background: #070d18;
@@ -45,11 +45,6 @@
     <div id="canvas-wrap">
       <div id="playfield">
         <canvas id="game-canvas" width="400" height="400"></canvas>
-        <button id="btn-reset-view" type="button" title="Fit claim to screen" aria-label="Fit claim to screen">
-          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
-            <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/>
-          </svg>
-        </button>
         <div id="event-banner" class="hidden"></div>
         <div id="toast-stack"></div>
         <div id="tap-meter"><span id="tap-meter-fill"></span></div>
@@ -74,12 +69,13 @@
           <span class="peek-hint">buy cheapest:</span>
           <span id="next-buy-label">Buy</span>
         </button>
-        <button id="sheet-handle" type="button" aria-expanded="false" aria-controls="sheet-body" title="Open all upgrades">
+        <button id="sheet-handle" type="button" aria-expanded="false" aria-controls="sheet-drawer" title="Open all upgrades">
           <span class="handle-bar" aria-hidden="true"></span>
           <span class="handle-chevron" aria-hidden="true"></span>
           <span id="sheet-label">Upgrades</span>
         </button>
       </div>
+      <div id="sheet-drawer">
       <nav id="tabs" aria-label="Shop">
         <button type="button" class="tab active" data-tab="tap">Laser</button>
         <button type="button" class="tab hidden" data-tab="fleet">Drills</button>
@@ -94,6 +90,7 @@
         <div id="tab-haul" class="tab-page"></div>
         <div id="tab-scan" class="tab-page"></div>
         <div id="tab-sector" class="tab-page"></div>
+      </div>
       </div>
     </section>
   </div>
@@ -123,7 +120,7 @@
         <label class="check-row"><input id="set-haptics" type="checkbox" checked /> Haptic taps</label>
         <label class="check-row"><input id="set-numbers" type="checkbox" checked /> Damage numbers</label>
         <label class="check-row"><input id="set-motion" type="checkbox" /> Reduced motion</label>
-        <button id="btn-replay-tips" type="button" class="ghost">Replay field tips</button>
+        <button id="btn-replay-tips" type="button" class="ghost">Replay induction</button>
       </div>
       <div class="settings-card">
         <h3>Install / save</h3>
@@ -221,6 +218,6 @@
       document.body.appendChild(box);
     });
   </script>
-  <script type="module" src="./js/main.js?v=44"></script>
+  <script type="module" src="./js/main.js?v=47"></script>
 </body>
 </html>

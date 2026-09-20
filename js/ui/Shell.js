@@ -52,7 +52,6 @@ export class Shell {
       canvasWrap: document.getElementById('canvas-wrap'),
       playfield: document.getElementById('playfield'),
       canvas: document.getElementById('game-canvas'),
-      resetView: document.getElementById('btn-reset-view'),
       app: document.getElementById('app'),
       hud: document.getElementById('hud'),
       shop: document.getElementById('shop'),
@@ -171,12 +170,6 @@ export class Shell {
     this._bindFieldCamera(canvas);
     canvas.style.touchAction = 'none';
 
-    this.els.resetView.addEventListener('click', () => {
-      this.engine.fitNeeded = true;
-      this.fitCanvas();
-      this.engine.resetView();
-    });
-
     this._bindSheetHandle();
 
     this.els.nextBuy.addEventListener('click', (event) => this._onBuy(event));
@@ -185,11 +178,11 @@ export class Shell {
       tab.addEventListener('click', () => this.setTab(tab.dataset.tab));
     });
 
-    this.els.tap.addEventListener('click', (event) => this._onBuy(event));
-    this.els.fleet.addEventListener('click', (event) => this._onBuy(event));
-    this.els.haul.addEventListener('click', (event) => this._onBuy(event));
-    this.els.scan.addEventListener('click', (event) => this._onBuy(event));
-    this.els.sector.addEventListener('click', (event) => this._onBuy(event) || this._onExpand(event));
+    this.els.tap.addEventListener('click', (event) => this._onUpgradePanel(event));
+    this.els.fleet.addEventListener('click', (event) => this._onUpgradePanel(event));
+    this.els.haul.addEventListener('click', (event) => this._onUpgradePanel(event));
+    this.els.scan.addEventListener('click', (event) => this._onUpgradePanel(event));
+    this.els.sector.addEventListener('click', (event) => this._onUpgradePanel(event) || this._onExpand(event));
     this.els.jobs.addEventListener('click', (event) => {
       if (event.target.closest('[data-jobs-back]')) {
         this.jobsPanel = false;
@@ -252,6 +245,7 @@ export class Shell {
     });
     this.els.motion.addEventListener('change', () => {
       this.engine.state.settings.reducedMotion = this.els.motion.checked;
+      this.els.app.dataset.reduced = this.els.motion.checked ? '1' : '0';
       this.engine.markDirty();
     });
 
@@ -457,11 +451,16 @@ export class Shell {
   _bindFieldCamera(canvas) {
     const pointers = new Map();
     const TAP_PX = 24;
+    const DOUBLE_MS = 320;
+    const DOUBLE_PX = 36;
     let mode = 'none';
     let lastX = 0;
     let lastY = 0;
     let pinchDist = 0;
     let pinchMid = { x: 0, y: 0 };
+    let lastTapAt = 0;
+    let lastTapX = 0;
+    let lastTapY = 0;
 
     const pinchStats = () => {
       const pts = [...pointers.values()];
@@ -511,6 +510,7 @@ export class Shell {
         }
         this.engine.zoomView(pinch.mid.x, pinch.mid.y, pinch.dist / pinchDist);
         this.engine.panView(pinch.mid.x - pinchMid.x, pinch.mid.y - pinchMid.y);
+        this.engine.noteViewAction('zoom');
         pinchDist = pinch.dist;
         pinchMid = pinch.mid;
         return;
@@ -522,6 +522,7 @@ export class Shell {
       }
       if (mode === 'pan') {
         this.engine.panView(dx, dy);
+        this.engine.noteViewAction('pan');
         lastX = event.clientX;
         lastY = event.clientY;
       }
@@ -532,7 +533,18 @@ export class Shell {
         return;
       }
       if (mode === 'pending' && pointers.size === 1) {
-        this.engine.tryTap(this.engine.eventToLogical(event));
+        const now = performance.now();
+        const dist = Math.hypot(event.clientX - lastTapX, event.clientY - lastTapY);
+        if (now - lastTapAt < DOUBLE_MS && dist < DOUBLE_PX) {
+          this.engine.resetView();
+          this.engine.noteViewAction('recenter');
+          lastTapAt = 0;
+        } else {
+          lastTapAt = now;
+          lastTapX = event.clientX;
+          lastTapY = event.clientY;
+          this.engine.tryTap(this.engine.eventToLogical(event));
+        }
       }
       pointers.delete(event.pointerId);
       if (pointers.size >= 2) {
@@ -561,6 +573,7 @@ export class Shell {
         const steps = Math.max(-4, Math.min(4, -event.deltaY / 80));
         const factor = Math.pow(1.12, steps || (event.deltaY < 0 ? 1 : -1));
         this.engine.zoomView(point.x, point.y, factor);
+        this.engine.noteViewAction('zoom');
       },
       { passive: false }
     );
@@ -611,15 +624,22 @@ export class Shell {
     this.els.shop.dataset.jobsPanel = this.jobsPanel && this.sheetOpen ? '1' : '0';
     this.els.handle.setAttribute('aria-expanded', this.sheetOpen ? 'true' : 'false');
     this.els.sheetLabel.textContent = 'Upgrades';
+    const drawer = document.getElementById('sheet-drawer');
+    if (drawer) {
+      const show = this.sheetOpen || this._desktopMq.matches;
+      drawer.toggleAttribute('inert', !show);
+    }
     if (this.sheetOpen) {
       const snap = this.engine.hudSnapshot();
       this._updateTabs(snap);
       this._updateUpgradeButtons(snap);
     }
-    requestAnimationFrame(() => {
-      this.fitCanvas();
-      requestAnimationFrame(() => this.fitCanvas());
-    });
+    if (this._desktopMq.matches) {
+      requestAnimationFrame(() => {
+        this.fitCanvas();
+        requestAnimationFrame(() => this.fitCanvas());
+      });
+    }
   }
 
   revealedTabs(snap) {
@@ -631,7 +651,7 @@ export class Shell {
     if (snap.stats.deposits > 0 || snap.tutorialStep > 1) {
       tabs.add('sector');
     }
-    if (snap.maxDrones > 0 || snap.stats.launches > 0 || (snap.tutorialIndex || 0) >= 3) {
+    if (snap.maxDrones > 0 || snap.stats.launches > 0 || (snap.tutorialIndex || 0) >= 5) {
       tabs.add('fleet');
     }
     return tabs;
@@ -684,11 +704,34 @@ export class Shell {
     }
   }
 
+  _onUpgradePanel(event) {
+    if (this._onBuy(event)) {
+      return true;
+    }
+    const card = event.target.closest('.upgrade-card');
+    if (!card) {
+      return false;
+    }
+    const open = card.classList.contains('is-info');
+    this.els.shop.querySelectorAll('.upgrade-card.is-info').forEach((item) => {
+      item.classList.remove('is-info');
+      item.setAttribute('aria-expanded', 'false');
+      item.querySelector('.upgrade-info')?.setAttribute('hidden', '');
+    });
+    if (!open) {
+      card.classList.add('is-info');
+      card.setAttribute('aria-expanded', 'true');
+      card.querySelector('.upgrade-info')?.removeAttribute('hidden');
+    }
+    return true;
+  }
+
   _onBuy(event) {
     const button = event.target.closest('[data-buy]');
     if (!button || !button.dataset.buy) {
       return false;
     }
+    event.stopPropagation();
     const scroll = this.els.sheetBody.scrollTop;
     if (this.engine.tryBuy(button.dataset.buy)) {
       this.patchUpgrade(button.dataset.buy);
@@ -749,6 +792,7 @@ export class Shell {
     this.els.haptics.checked = s.haptics !== false;
     this.els.numbers.checked = s.damageNumbers !== false;
     this.els.motion.checked = s.reducedMotion === true;
+    this.els.app.dataset.reduced = s.reducedMotion === true ? '1' : '0';
     this.engine.sound.setVolume(s.sfxVolume);
   }
 
@@ -799,18 +843,30 @@ export class Shell {
     const canBuy = unlocked && !maxed && credits >= cost;
     const badge = def.permanent ? '<span class="perm">Permanent</span>' : '';
     const lock = unlocked ? '' : `<span class="lock">Needs ${requirementText(def)}</span>`;
+    const meta = `Lv ${level}/${def.maxLevel} · ${def.describe(level)}`;
     return `
-      <article class="upgrade-card${maxed ? ' maxed' : ''}${unlocked ? '' : ' locked'}" data-upgrade="${def.id}">
-        <div class="upgrade-main">
+      <article class="upgrade-card${maxed ? ' maxed' : ''}${unlocked ? '' : ' locked'}" data-upgrade="${def.id}" aria-expanded="false">
+        <div class="upgrade-buy">
+          <div class="upgrade-main">
+            <div class="upgrade-head">
+              <h3>${def.name}</h3>
+              ${badge}${lock}
+            </div>
+            <p class="upgrade-meta">${meta}</p>
+          </div>
+          <button type="button" data-buy="${def.id}" ${canBuy ? '' : 'disabled'}>
+            ${!unlocked ? 'Locked' : maxed ? 'MAX' : `Buy · $${formatCredits(cost)}`}
+          </button>
+        </div>
+        <div class="upgrade-info" hidden>
           <div class="upgrade-head">
             <h3>${def.name}</h3>
-            ${badge}${lock}
+            ${badge}
           </div>
-          <p class="upgrade-meta">Lv ${level}/${def.maxLevel} · ${def.describe(level)}</p>
+          <p class="upgrade-help">${def.help || def.describe(level)}</p>
+          <p class="upgrade-meta">${meta}</p>
+          <p class="upgrade-info-hint">Tap to return</p>
         </div>
-        <button type="button" data-buy="${def.id}" ${canBuy ? '' : 'disabled'}>
-          ${!unlocked ? 'Locked' : maxed ? 'MAX' : `Buy · $${formatCredits(cost)}`}
-        </button>
       </article>
     `;
   }
@@ -834,10 +890,11 @@ export class Shell {
     const canBuy = unlocked && !maxed && credits >= cost;
     card.classList.toggle('maxed', maxed);
     card.classList.toggle('locked', !unlocked);
-    const meta = card.querySelector('.upgrade-meta');
-    if (meta) {
-      meta.textContent = `Lv ${level}/${def.maxLevel} · ${def.describe(level)}`;
-    }
+    const meta = card.querySelectorAll('.upgrade-meta');
+    const line = `Lv ${level}/${def.maxLevel} · ${def.describe(level)}`;
+    meta.forEach((el) => {
+      el.textContent = line;
+    });
     const button = card.querySelector('[data-buy]');
     if (button) {
       button.disabled = !canBuy;
@@ -1161,6 +1218,10 @@ export class Shell {
     this.els.coachBody.textContent = snap.tutorial.body;
     if (this.els.coachNext) {
       this.els.coachNext.classList.toggle('hidden', snap.tutorial.next === false);
+    }
+    const skip = document.getElementById('coach-skip');
+    if (skip) {
+      skip.classList.toggle('hidden', snap.tutorial.id === 'done');
     }
   }
 
