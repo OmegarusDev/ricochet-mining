@@ -34,7 +34,7 @@ A new player does not need this file. With the sheet collapsed, tips sit under t
 
 The claim is a square from **Scanners Grid**, not the screen. Drag to pan, pinch or scroll to zoom, and the top-left fit control lines the walls up with the narrow screen edges.
 
-HUD left to right: Jobs, sector, cash, $/s, 2x, settings. Peek bar: Buy Drill (live count · cost), cheapest upgrade, Upgrades.
+HUD left to right: Jobs, sector, cash with $/s under it, 2x, settings. Peek bar: Buy Drill (live count · cost), cheapest upgrade, Upgrades.
 
 ## Tuning
 

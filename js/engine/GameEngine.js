@@ -1335,7 +1335,10 @@ export function formatCredits(value) {
   if (n >= 1e6) {
     return `${(n / 1e6).toFixed(2)}M`;
   }
-  return n.toLocaleString('en-US');
+  if (n >= 1e3) {
+    return `${Math.floor(n / 1e3)}K`;
+  }
+  return String(n);
 }
 
 export function formatDuration(seconds) {

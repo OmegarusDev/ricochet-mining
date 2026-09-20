@@ -123,8 +123,14 @@ export class Shell {
   observeCanvas() {
     const observer = new ResizeObserver(() => this.fitCanvas());
     observer.observe(this.els.playfield || this.els.canvasWrap);
-    window.addEventListener('resize', () => this.fitCanvas());
-    window.visualViewport?.addEventListener('resize', () => this.fitCanvas());
+    window.addEventListener('resize', () => {
+      this.fitCanvas();
+      this._fitHud();
+    });
+    window.visualViewport?.addEventListener('resize', () => {
+      this.fitCanvas();
+      this._fitHud();
+    });
     this.fitCanvas();
   }
 
@@ -138,6 +144,19 @@ export class Shell {
     const reset = this.engine.fitNeeded === true;
     this.engine.fitNeeded = false;
     this.engine.resizeCanvas(width, height, { reset });
+  }
+
+  _fitHud() {
+    const hud = this.els.hud;
+    if (!hud) {
+      return;
+    }
+    let size = 13;
+    hud.style.setProperty('--hud-fs', String(size));
+    while (hud.scrollWidth > hud.clientWidth + 1 && size > 10) {
+      size -= 0.5;
+      hud.style.setProperty('--hud-fs', String(size));
+    }
   }
 
   _bind() {
@@ -940,6 +959,18 @@ export class Shell {
     this.els.credits.textContent = formatCredits(snap.credits);
     this.els.rate.textContent = snap.rate.toFixed(1);
     this.els.sectorBadge.textContent = `S${snap.sector.level} ${snap.sector.short}`;
+    const hud = this.els.hud;
+    const hudSig = [
+      this.els.credits.textContent,
+      this.els.rate.textContent,
+      this.els.sectorBadge.textContent,
+      this.els.jobPip?.textContent || '',
+      hud ? hud.clientWidth : 0
+    ].join('|');
+    if (this._hudFitSig !== hudSig) {
+      this._hudFitSig = hudSig;
+      this._fitHud();
+    }
     const ready = snap.tapInterval <= 0 ? 1 : 1 - snap.tapCooldown / snap.tapInterval;
     this.els.tapFill.style.transform = `scaleX(${Math.max(0, Math.min(1, ready))})`;
     if (this.sheetOpen) {
