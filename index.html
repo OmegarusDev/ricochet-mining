@@ -15,9 +15,9 @@
   <link rel="manifest" href="./manifest.json" />
   <link rel="icon" href="./icons/favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
-  <link rel="stylesheet" href="./css/style.css?v=24" />
+  <link rel="stylesheet" href="./css/style.css?v=25" />
   <style>
-    html, body, #app, #canvas-wrap, #game-canvas {
+    html, body, #app, #canvas-wrap, #playfield, #game-canvas {
       background: #070d18;
       color: #f8fafc;
     }
@@ -26,10 +26,10 @@
 <body>
   <div id="app">
     <header id="hud">
-      <span id="sector-badge">S1 Alpha</span>
       <button id="btn-jobs" type="button" aria-label="Contracts">
         Jobs <span id="job-pip">0</span>
       </button>
+      <span id="sector-badge">S1 Alpha</span>
       <div class="hud-cash">$<span id="stat-credits">0</span></div>
       <div class="hud-rate"><span id="stat-rate">0.0</span>/s</div>
       <button id="btn-speed" type="button" aria-pressed="false" title="Toggle 2x speed">1x</button>
@@ -41,20 +41,22 @@
     </header>
 
     <div id="canvas-wrap">
-      <canvas id="game-canvas" width="400" height="400"></canvas>
-      <button id="btn-reset-view" type="button" title="Fit claim to screen" aria-label="Fit claim to screen">
-        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
-          <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/>
-        </svg>
-      </button>
-      <div id="event-banner" class="hidden"></div>
-      <div id="toast-stack"></div>
+      <div id="playfield">
+        <canvas id="game-canvas" width="400" height="400"></canvas>
+        <button id="btn-reset-view" type="button" title="Fit claim to screen" aria-label="Fit claim to screen">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+            <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/>
+          </svg>
+        </button>
+        <div id="event-banner" class="hidden"></div>
+        <div id="toast-stack"></div>
+        <div id="tap-meter"><span id="tap-meter-fill"></span></div>
+      </div>
       <div id="coach-mark" class="hidden">
         <strong id="coach-title"></strong>
         <p id="coach-body"></p>
         <button id="coach-skip" type="button">Skip</button>
       </div>
-      <div id="tap-meter"><span id="tap-meter-fill"></span></div>
     </div>
 
     <section id="shop" data-open="0">
@@ -214,6 +216,6 @@
       document.body.appendChild(box);
     });
   </script>
-  <script type="module" src="./js/main.js?v=24"></script>
+  <script type="module" src="./js/main.js?v=25"></script>
 </body>
 </html>

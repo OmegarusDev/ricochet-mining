@@ -44,6 +44,7 @@ export class Shell {
       sectorBadge: document.getElementById('sector-badge'),
       deploy: document.getElementById('btn-deploy'),
       canvasWrap: document.getElementById('canvas-wrap'),
+      playfield: document.getElementById('playfield'),
       canvas: document.getElementById('game-canvas'),
       resetView: document.getElementById('btn-reset-view'),
       app: document.getElementById('app'),
@@ -105,13 +106,13 @@ export class Shell {
 
   observeCanvas() {
     const observer = new ResizeObserver(() => this.fitCanvas());
-    observer.observe(this.els.canvasWrap);
+    observer.observe(this.els.playfield || this.els.canvasWrap);
     window.addEventListener('resize', () => this.fitCanvas());
     this.fitCanvas();
   }
 
   fitCanvas() {
-    const rect = this.els.canvasWrap.getBoundingClientRect();
+    const rect = (this.els.playfield || this.els.canvasWrap).getBoundingClientRect();
     if (rect.width < 32 || rect.height < 32) {
       return;
     }
@@ -1049,6 +1050,9 @@ export class Shell {
       spotlight = 'launch';
     }
     this.els.canvasWrap.dataset.coach = spotlight === 'launch' ? '' : spotlight;
+    if (this.els.playfield) {
+      this.els.playfield.dataset.coach = spotlight === 'launch' ? '' : spotlight;
+    }
     this.els.app.dataset.coach = spotlight;
     if (!snap.tutorial) {
       this.els.coach.classList.add('hidden');
