@@ -10,12 +10,12 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="RicochetMine" />
   <meta name="application-name" content="RicochetMine" />
-  <meta name="description" content="Tap-to-mine kinetic asteroid incremental. Laser rocks, launch paid drills, haul ore to the refinery pad." />
+  <meta name="description" content="Tap rocks, haul shards, buy upgrades. Drills bounce off walls." />
   <title>Ricochet Mining Co.</title>
   <link rel="manifest" href="./manifest.json" />
   <link rel="icon" href="./icons/favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
-  <link rel="stylesheet" href="./css/style.css?v=47" />
+  <link rel="stylesheet" href="./css/style.css?v=51" />
   <style>
     html, body, #app, #canvas-wrap, #playfield, #game-canvas {
       background: #070d18;
@@ -63,7 +63,7 @@
       <div id="sheet-peek">
         <button id="btn-deploy" type="button">
           <span class="peek-hint" id="deploy-hint">buy drill</span>
-          <span id="deploy-label">0/1 · $20</span>
+          <span id="deploy-label">0/1 · $10</span>
         </button>
         <button id="btn-next-buy" type="button" data-buy="">
           <span class="peek-hint">buy cheapest:</span>
@@ -109,7 +109,7 @@
         </div>
       </div>
       <div class="settings-card">
-        <label for="game-speed">Simulation Speed</label>
+        <label for="game-speed">Game speed</label>
         <select id="game-speed">
           <option value="0.5">0.5x</option>
           <option value="1" selected>1x</option>
@@ -120,7 +120,7 @@
         <label class="check-row"><input id="set-haptics" type="checkbox" checked /> Haptic taps</label>
         <label class="check-row"><input id="set-numbers" type="checkbox" checked /> Damage numbers</label>
         <label class="check-row"><input id="set-motion" type="checkbox" /> Reduced motion</label>
-        <button id="btn-replay-tips" type="button" class="ghost">Replay induction</button>
+        <button id="btn-replay-tips" type="button" class="ghost">Replay tips</button>
       </div>
       <div class="settings-card">
         <h3>Install / save</h3>
@@ -133,12 +133,12 @@
         <p class="settings-copy">Ricochet Mining Co.</p>
       </div>
       <div class="settings-card">
-        <h3>Company ledger</h3>
+        <h3>Your stats</h3>
         <p id="stat-ledger" class="settings-copy"></p>
       </div>
       <div class="settings-card danger">
         <h3>Danger zone</h3>
-        <p class="settings-copy">Wipe the corporation. Buried behind two confirmations, then a press-and-hold.</p>
+        <p class="settings-copy">Wipe your save. Two confirms, then press and hold.</p>
         <button id="btn-danger" type="button">Open danger zone</button>
       </div>
     </div>
@@ -218,6 +218,6 @@
       document.body.appendChild(box);
     });
   </script>
-  <script type="module" src="./js/main.js?v=47"></script>
+  <script type="module" src="./js/main.js?v=51"></script>
 </body>
 </html>

@@ -6,12 +6,13 @@ import {
   tapDamage as tapDamageAt,
   tapInterval as tapIntervalAt,
   probeDamage as probeDamageAt,
+  probeHull as probeHullAt,
   probeSpeed as probeSpeedAt,
   probeSlots,
   haulerSpeed as haulerSpeedAt,
   launchFee,
   fieldSize
-} from '../sim/Tuning.js';
+} from '../sim/Tuning.js?v=50';
 
 function u(def) {
   return {
@@ -20,8 +21,20 @@ function u(def) {
     permanent: false,
     group: 'General',
     requires: null,
+    hidden: false,
     ...def
   };
+}
+
+/** Every rock starts at 2 shards. Richness multiplies that count. */
+export const BASE_SHARDS = 2;
+
+export function richnessMult(level) {
+  return 1 + Math.max(0, level) * 0.5;
+}
+
+export function shardsOnBreak(richnessLevel, yieldCount = BASE_SHARDS) {
+  return Math.max(1, Math.round(yieldCount * richnessMult(richnessLevel)));
 }
 
 export const TAB_META = [
@@ -33,27 +46,27 @@ export const TAB_META = [
 ];
 
 export const GROUP_BLURBS = {
-  'Manual Rig': 'Fire bolts from the refinery. Ore drops on shatter. Chip Harvest can leak chips as they split.',
-  Specialist: 'Precision toys. Crits, splash, and rhythm once the laser is worth firing.',
-  Overdrive: 'Late laser kits. Locked until the basic rig is actually upgraded.',
-  Drills: 'Kinetic drills. Walls are free. Rocks trade hull for damage.',
-  Automation: 'Mid-game dispatch. Auto-launch still pays the drill fee.',
-  Ballistics: 'Separate from the laser. Crits for drills.',
-  Ordnance: 'Guidance, chains, and twin rails for a real fleet.',
-  Crew: 'Haulers you own. Buy more bays, then they keep working the pad.',
-  Bay: 'Cargo, pumps, and the dump circle at the bottom of the claim.',
-  Assay: 'Ore pay and shatter yield. Scanning the belt is on Survey.',
-  Scanners: 'How many rocks, how fast they refill, and how large the claim square is.',
-  Logistics: 'Return burns, compression, and pad magnetism.',
-  'Company Charter': 'Survives expansion. Buy these before you warp.'
+  'Laser Kit': 'Tap a rock. Shards fall when it breaks. Early Shards can knock some loose while you are still shooting.',
+  'Lucky Shots': 'Bonus laser tricks: lucky hits, splash, and combos.',
+  'Big Laser': 'Late laser toys. Locked until the basic laser is upgraded.',
+  Drills: 'Drills bounce off walls for free. Hitting a rock wears them down.',
+  'Hands-Free': 'Launch drills for you. You still pay the launch fee every time.',
+  'Lucky Drills': 'Lucky hits for drills. Separate from the laser.',
+  'Drill Extras': 'Homing, jumping to the next rock, and extra launches.',
+  Haulers: 'The gold ships that pick up shards and dump them at REFINERY.',
+  'The Pad': 'How much they carry, how fast they dump, and how close they must get.',
+  Payday: 'How many shards drop, and how much each shard is worth.',
+  'The Field': 'How many rocks, how fast they show up, and how big the square is.',
+  Shortcuts: 'Faster trips home, extra cargo, stronger magnet near the pad.',
+  'Keep Forever': 'These stay when you warp to a new sector. Buy them before you leave.'
 };
 
 export const UPGRADE_DEFS = [
   u({
     id: 'tap_damage',
-    name: 'Laser Emitter',
+    name: 'Laser Power',
     tab: 'tap',
-    group: 'Manual Rig',
+    group: 'Laser Kit',
     baseCost: 8,
     scale: 1.24,
     maxLevel: 80,
@@ -62,31 +75,31 @@ export const UPGRADE_DEFS = [
   }),
   u({
     id: 'tap_rate',
-    name: 'Laser Cadence',
+    name: 'Faster Shots',
     tab: 'tap',
-    group: 'Manual Rig',
+    group: 'Laser Kit',
     baseCost: 14,
     scale: 1.3,
     maxLevel: 30,
     effect: (level) => tapIntervalAt(level),
-    describe: (level) => `Shot interval: ${tapIntervalAt(level).toFixed(2)} s`
+    describe: (level) => `Wait between shots: ${tapIntervalAt(level).toFixed(2)} s`
   }),
   u({
     id: 'tap_radius',
-    name: 'Targeting Overlay',
+    name: 'Easier Aim',
     tab: 'tap',
-    group: 'Manual Rig',
+    group: 'Laser Kit',
     baseCost: 18,
     scale: 1.32,
     maxLevel: 18,
     effect: (level) => 36 + level * 9,
-    describe: (level) => `Aim assist: ${36 + level * 9} px`
+    describe: (level) => `You can miss by more (reach ${36 + level * 9})`
   }),
   u({
     id: 'tap_chips',
-    name: 'Chip Harvest',
+    name: 'Early Shards',
     tab: 'tap',
-    group: 'Manual Rig',
+    group: 'Laser Kit',
     requires: { id: 'tap_damage', level: 1 },
     baseCost: 20,
     scale: 1.33,
@@ -94,64 +107,64 @@ export const UPGRADE_DEFS = [
     effect: (level) => (level <= 0 ? 0 : Math.min(0.64, 0.11 + (level - 1) * 0.025)),
     describe: (level) =>
       level <= 0
-        ? 'Off — ore only drops when a rock shatters'
-        : `Leak chance: ${(Math.min(0.64, 0.11 + (level - 1) * 0.025) * 100).toFixed(0)}% · ${
+        ? 'Off — shards only drop when a rock breaks'
+        : `${(Math.min(0.64, 0.11 + (level - 1) * 0.025) * 100).toFixed(0)}% chance while shooting · ${
             1 + Math.floor((level - 1) / 6)
-          } chip${1 + Math.floor((level - 1) / 6) === 1 ? '' : 's'} · value ×${(
+          } shard${1 + Math.floor((level - 1) / 6) === 1 ? '' : 's'} · each worth ×${(
             0.4 +
             (level - 1) * 0.12
           ).toFixed(2)}`
   }),
   u({
     id: 'tap_crit',
-    name: 'Precision Strike',
+    name: 'Lucky Hits',
     tab: 'tap',
-    group: 'Specialist',
+    group: 'Lucky Shots',
     baseCost: 40,
     scale: 1.36,
     maxLevel: 20,
     effect: (level) => Math.min(0.58, level * 0.028),
-    describe: (level) => `Crit chance: ${(Math.min(0.58, level * 0.028) * 100).toFixed(1)}%`
+    describe: (level) => `Lucky hit chance: ${(Math.min(0.58, level * 0.028) * 100).toFixed(1)}%`
   }),
   u({
     id: 'tap_splash',
-    name: 'Shockwave Bit',
+    name: 'Shockwave',
     tab: 'tap',
-    group: 'Specialist',
+    group: 'Lucky Shots',
     baseCost: 55,
     scale: 1.38,
     maxLevel: 15,
     effect: (level) => Math.min(0.72, level * 0.046),
-    describe: (level) => `Splash damage: ${(Math.min(0.72, level * 0.046) * 100).toFixed(0)}%`
+    describe: (level) => `Nearby rocks take ${(Math.min(0.72, level * 0.046) * 100).toFixed(0)}% extra`
   }),
   u({
     id: 'tap_combo',
-    name: 'Rhythm Bonus',
+    name: 'Combo Bonus',
     tab: 'tap',
-    group: 'Specialist',
+    group: 'Lucky Shots',
     baseCost: 70,
     scale: 1.4,
     maxLevel: 12,
     effect: (level) => 0.07 + level * 0.042,
-    describe: (level) => `Combo bonus: +${((0.07 + level * 0.042) * 100).toFixed(0)}%/stack`
+    describe: (level) => `Each tap in a row: +${((0.07 + level * 0.042) * 100).toFixed(0)}%`
   }),
   u({
     id: 'tap_soften',
-    name: 'Fault Finder',
+    name: 'Tough-Rock Laser',
     tab: 'tap',
-    group: 'Overdrive',
+    group: 'Big Laser',
     requires: { id: 'tap_damage', level: 4 },
     baseCost: 95,
     scale: 1.37,
     maxLevel: 16,
     effect: (level) => 1 + level * 0.07,
-    describe: (level) => `Laser damage ×${(1 + level * 0.07).toFixed(2)} vs rock HP`
+    describe: (level) => `Extra vs big rocks: ×${(1 + level * 0.07).toFixed(2)}`
   }),
   u({
     id: 'tap_lucky',
-    name: 'Lucky Flakes',
+    name: 'Extra Shard',
     tab: 'tap',
-    group: 'Overdrive',
+    group: 'Big Laser',
     requires: { id: 'tap_chips', level: 3 },
     baseCost: 110,
     scale: 1.39,
@@ -159,61 +172,61 @@ export const UPGRADE_DEFS = [
     effect: (level) => Math.min(0.7, level * 0.048),
     describe: (level) =>
       level <= 0
-        ? 'Extra chip when a leak already drops'
-        : `Bonus leak chip: ${(Math.min(0.7, level * 0.048) * 100).toFixed(0)}%`
+        ? 'Sometimes drops one more shard when Early Shards already popped one'
+        : `${(Math.min(0.7, level * 0.048) * 100).toFixed(0)}% chance of a bonus shard`
   }),
   u({
     id: 'tap_overcharge',
-    name: 'Capacitor Cell',
+    name: 'Charged Shot',
     tab: 'tap',
-    group: 'Overdrive',
+    group: 'Big Laser',
     requires: { id: 'tap_rate', level: 4 },
     baseCost: 130,
     scale: 1.41,
     maxLevel: 12,
     effect: (level) => (level <= 0 ? 0 : Math.max(4, 11 - level)),
     describe: (level) =>
-      level <= 0 ? 'Every Nth shot detonates' : `Overcharge every ${Math.max(4, 11 - level)} shots (×3.1)`
+      level <= 0 ? 'Every so often, a huge blast' : `Huge blast every ${Math.max(4, 11 - level)} shots (×3.1)`
   }),
   u({
     id: 'tap_pierce',
-    name: 'Core Auger',
+    name: 'Wider Shockwave',
     tab: 'tap',
-    group: 'Overdrive',
+    group: 'Big Laser',
     requires: { id: 'tap_splash', level: 2 },
     baseCost: 150,
     scale: 1.4,
     maxLevel: 10,
     effect: (level) => 58 + level * 10,
-    describe: (level) => `Splash radius: ${58 + level * 10} px`
+    describe: (level) => `Shockwave reach: ${58 + level * 10}`
   }),
   u({
     id: 'tap_multihit',
-    name: 'Twin Bit',
+    name: 'Two Rocks',
     tab: 'tap',
-    group: 'Overdrive',
+    group: 'Big Laser',
     requires: { id: 'tap_radius', level: 5 },
     baseCost: 180,
     scale: 1.44,
     maxLevel: 8,
     effect: (level) => Math.min(0.85, level * 0.1),
-    describe: (level) => `2nd target: ${(Math.min(0.85, level * 0.1) * 100).toFixed(0)}% damage`
+    describe: (level) => `Second rock takes ${(Math.min(0.85, level * 0.1) * 100).toFixed(0)}%`
   }),
 
   u({
     id: 'drone_max_count',
-    name: 'Drill License',
+    name: 'Drill Slot',
     tab: 'fleet',
     group: 'Drills',
     baseCost: 22,
     scale: 1.88,
     maxLevel: TUNING.probeCap,
     effect: (level) => probeSlots(level),
-    describe: (level) => `Max drills: ${probeSlots(level)}`
+    describe: (level) => `Drills you can fly at once: ${probeSlots(level)}`
   }),
   u({
     id: 'drone_damage',
-    name: 'Kinetic Energy',
+    name: 'Harder Hits',
     tab: 'fleet',
     group: 'Drills',
     baseCost: 18,
@@ -224,40 +237,40 @@ export const UPGRADE_DEFS = [
   }),
   u({
     id: 'drone_hull',
-    name: 'Reinforced Hull',
+    name: 'Tougher Drill',
     tab: 'fleet',
     group: 'Drills',
     baseCost: 20,
     scale: 1.27,
     maxLevel: 40,
-    effect: (level) => 20 + level * 15,
-    describe: (level) => `Max HP: ${20 + level * 15}`
+    effect: (level) => probeHullAt(level),
+    describe: (level) => `Health: ${probeHullAt(level)}`
   }),
   u({
     id: 'drone_speed',
-    name: 'Impulse Thrusters',
+    name: 'Faster Drills',
     tab: 'fleet',
     group: 'Drills',
     baseCost: 24,
     scale: 1.2,
     maxLevel: 32,
     effect: (level) => probeSpeedAt(level),
-    describe: (level) => `Speed: ${probeSpeedAt(level)} px/s`
+    describe: (level) => `Speed: ${probeSpeedAt(level)}`
   }),
   u({
     id: 'launch_discount',
-    name: 'Bulk Drill Contract',
+    name: 'Cheaper Launches',
     tab: 'fleet',
     group: 'Drills',
     baseCost: 40,
     scale: 1.38,
     maxLevel: 18,
     effect: (level) => Math.min(0.72, level * 0.04),
-    describe: (level) => `Drill cost −${(Math.min(0.72, level * 0.04) * 100).toFixed(0)}%`
+    describe: (level) => `Launch fee −${(Math.min(0.72, level * 0.04) * 100).toFixed(0)}%`
   }),
   u({
     id: 'drone_recoil',
-    name: 'Inertial Dampers',
+    name: 'Softer Wear',
     tab: 'fleet',
     group: 'Drills',
     baseCost: 32,
@@ -266,25 +279,25 @@ export const UPGRADE_DEFS = [
     effect: (level) => Math.max(0.28, 1 - level * 0.045),
     describe: (level) =>
       level <= 0
-        ? '1:1 ram — you pay the full trade until dampers'
-        : `You pay ${(Math.max(0.28, 1 - level * 0.045) * 100).toFixed(0)}% of each ram`
+        ? "Take the rock's full punch"
+        : `Take ${(Math.max(0.28, 1 - level * 0.045) * 100).toFixed(0)}% of the rock's punch`
   }),
   u({
     id: 'bounce_damp',
-    name: 'Elastic Plating',
+    name: 'Bouncy Armor',
     tab: 'fleet',
     group: 'Drills',
     baseCost: 28,
     scale: 1.31,
     maxLevel: 14,
     effect: (level) => Math.min(0.995, 0.92 + level * 0.0055),
-    describe: (level) => `Walls keep ${(Math.min(0.995, 0.92 + level * 0.0055) * 100).toFixed(1)}% speed — not a shield`
+    describe: (level) => `After a wall, keep ${(Math.min(0.995, 0.92 + level * 0.0055) * 100).toFixed(1)}% speed`
   }),
   u({
     id: 'probe_crit',
-    name: 'Deadeye Core',
+    name: 'Lucky Drill Hits',
     tab: 'fleet',
-    group: 'Ballistics',
+    group: 'Lucky Drills',
     requires: { id: 'drone_damage', level: 3 },
     baseCost: 210,
     scale: 1.36,
@@ -292,26 +305,26 @@ export const UPGRADE_DEFS = [
     effect: (level) => (level <= 0 ? 0 : Math.min(0.48, 0.07 + (level - 1) * 0.021)),
     describe: (level) =>
       level <= 0
-        ? 'Off — drills never crit (laser crits stay separate)'
-        : `Drill crit chance: ${(Math.min(0.48, 0.07 + (level - 1) * 0.021) * 100).toFixed(0)}%`
+        ? 'Off — drills have no lucky hits (laser lucky hits stay separate)'
+        : `Lucky drill chance: ${(Math.min(0.48, 0.07 + (level - 1) * 0.021) * 100).toFixed(0)}%`
   }),
   u({
     id: 'probe_crit_dmg',
-    name: 'Tungsten Tips',
+    name: 'Harder Lucky Hits',
     tab: 'fleet',
-    group: 'Ballistics',
+    group: 'Lucky Drills',
     requires: { id: 'probe_crit', level: 2 },
     baseCost: 280,
     scale: 1.4,
     maxLevel: 16,
     effect: (level) => 1.85 + level * 0.15,
-    describe: (level) => `Drill crit damage: ${Math.round((1.85 + level * 0.15) * 100)}%`
+    describe: (level) => `Lucky drill hits deal ${Math.round((1.85 + level * 0.15) * 100)}%`
   }),
   u({
     id: 'bank_shot',
     name: 'Rebound',
     tab: 'fleet',
-    group: 'Ballistics',
+    group: 'Lucky Drills',
     requires: { id: 'bounce_damp', level: 1 },
     baseCost: 165,
     scale: 1.34,
@@ -324,9 +337,9 @@ export const UPGRADE_DEFS = [
   }),
   u({
     id: 'auto_launch',
-    name: 'Auto-Launch System',
+    name: 'Auto Launch',
     tab: 'fleet',
-    group: 'Automation',
+    group: 'Hands-Free',
     requires: { id: 'drone_max_count', level: 3 },
     baseCost: 980,
     scale: 1.58,
@@ -334,364 +347,368 @@ export const UPGRADE_DEFS = [
     effect: (level) => (level <= 0 ? 0 : Math.max(0.4, 11 - (level - 1) * 0.65)),
     describe: (level) =>
       level <= 0
-        ? 'Locked until Drill License 3 — still pays each launch'
-        : `Auto-launch every ${Math.max(0.4, 11 - (level - 1) * 0.65).toFixed(2)} s (pays fee)`
+        ? 'Locked until Drill Slot 3 — still pays each launch'
+        : `Launches a drill every ${Math.max(0.4, 11 - (level - 1) * 0.65).toFixed(2)} s (still pays)`
   }),
   u({
     id: 'burst_launch',
-    name: 'Hot Rails',
+    name: 'Quicker Buy',
     tab: 'fleet',
-    group: 'Automation',
+    group: 'Hands-Free',
     requires: { id: 'drone_max_count', level: 2 },
     baseCost: 220,
     scale: 1.36,
     maxLevel: 12,
     effect: (level) => Math.max(0.12, 0.62 - level * 0.04),
-    describe: (level) => `Manual drill delay: ${Math.max(0.12, 0.62 - level * 0.04).toFixed(2)} s`
+    describe: (level) => `Wait after you buy a drill: ${Math.max(0.12, 0.62 - level * 0.04).toFixed(2)} s`
   }),
   u({
     id: 'dual_launch',
-    name: 'Twin Rails',
+    name: 'Two At Once',
     tab: 'fleet',
-    group: 'Ordnance',
+    group: 'Drill Extras',
     requires: { id: 'launch_discount', level: 2 },
     baseCost: 420,
     scale: 1.48,
     maxLevel: 10,
     effect: (level) => Math.min(0.9, level * 0.09),
-    describe: (level) => `Second drill: ${(Math.min(0.9, level * 0.09) * 100).toFixed(0)}% (half fee)`
+    describe: (level) => `${(Math.min(0.9, level * 0.09) * 100).toFixed(0)}% chance of a second drill (half price)`
   }),
   u({
     id: 'scrap_rebate',
-    name: 'Scrap Rights',
+    name: 'Scrap Refund',
     tab: 'fleet',
-    group: 'Ordnance',
+    group: 'Drill Extras',
     requires: { id: 'drone_hull', level: 3 },
     baseCost: 160,
     scale: 1.35,
     maxLevel: 14,
     effect: (level) => Math.min(0.55, level * 0.04),
-    describe: (level) => `Death rebate: ${(Math.min(0.55, level * 0.04) * 100).toFixed(0)}% of launch fee`
+    describe: (level) => `When a drill dies, get back ${(Math.min(0.55, level * 0.04) * 100).toFixed(0)}% of the launch fee`
   }),
   u({
     id: 'hull_regen',
-    name: 'Nanite Seals',
+    name: 'Self-Repair',
     tab: 'fleet',
-    group: 'Ordnance',
+    group: 'Drill Extras',
     requires: { id: 'drone_hull', level: 5 },
     baseCost: 260,
     scale: 1.4,
     maxLevel: 12,
     effect: (level) => level * 1.8,
-    describe: (level) => `Hull regen: ${(level * 1.8).toFixed(1)} HP/s`
+    describe: (level) => `Heals ${(level * 1.8).toFixed(1)} health per second`
   }),
   u({
     id: 'guidance',
-    name: 'Guidance Kit',
+    name: 'Homing',
     tab: 'fleet',
-    group: 'Ordnance',
+    group: 'Drill Extras',
     requires: { id: 'drone_speed', level: 4 },
     baseCost: 240,
     scale: 1.38,
     maxLevel: 12,
     effect: (level) => Math.min(0.55, level * 0.045),
-    describe: (level) => `Homing: ${(Math.min(0.55, level * 0.045) * 100).toFixed(0)}%`
+    describe: (level) => `Steers toward rocks: ${(Math.min(0.55, level * 0.045) * 100).toFixed(0)}%`
   }),
   u({
     id: 'chain_shot',
-    name: 'Shock Chain',
+    name: 'Jump Hit',
     tab: 'fleet',
-    group: 'Ordnance',
+    group: 'Drill Extras',
     requires: { id: 'drone_damage', level: 6 },
     baseCost: 300,
     scale: 1.42,
     maxLevel: 10,
     effect: (level) => Math.min(0.6, level * 0.055),
-    describe: (level) => `Chain hit: ${(Math.min(0.6, level * 0.055) * 100).toFixed(0)}%`
+    describe: (level) => `${(Math.min(0.6, level * 0.055) * 100).toFixed(0)}% chance to jump to another rock`
   }),
   u({
     id: 'probe_mass',
     name: 'Heavy Nose',
     tab: 'fleet',
-    group: 'Ordnance',
+    group: 'Drill Extras',
     requires: { id: 'bounce_damp', level: 2 },
     baseCost: 190,
     scale: 1.34,
     maxLevel: 12,
     effect: (level) => 8 + level * 0.45,
-    describe: (level) => `Drill radius: ${(8 + level * 0.45).toFixed(1)} px`
+    describe: (level) => `Bigger drill (easier rams): ${(8 + level * 0.45).toFixed(1)}`
   }),
 
   u({
     id: 'collector_max',
-    name: 'Hauler Fleet',
+    name: 'More Haulers',
     tab: 'haul',
-    group: 'Crew',
+    group: 'Haulers',
     baseCost: 70,
     scale: 1.52,
     maxLevel: 12,
     effect: (level) => 1 + level,
-    describe: (level) => `Max haulers: ${1 + level}`
+    describe: (level) => `Haulers you own: ${1 + level}`
   }),
   u({
     id: 'collector_speed',
-    name: 'Hauler Engines',
+    name: 'Faster Haulers',
     tab: 'haul',
-    group: 'Crew',
+    group: 'Haulers',
     baseCost: 30,
     scale: 1.22,
     maxLevel: 30,
     effect: (level) => haulerSpeedAt(level),
-    describe: (level) => `Speed: ${haulerSpeedAt(level)} px/s`
+    describe: (level) => `Speed: ${haulerSpeedAt(level)}`
   }),
   u({
     id: 'collector_magnet',
-    name: 'Gravity Tether',
+    name: 'Magnet Reach',
     tab: 'haul',
-    group: 'Crew',
+    group: 'Haulers',
     baseCost: 52,
     scale: 1.28,
     maxLevel: 20,
     effect: (level) => 38 + level * 13,
-    describe: (level) => `Magnet: ${38 + level * 13} px`
+    describe: (level) => `Pick-up reach: ${38 + level * 13}`
   }),
   u({
     id: 'hauler_agility',
-    name: 'RCS Thrusters',
+    name: 'Tighter Turns',
     tab: 'haul',
-    group: 'Crew',
+    group: 'Haulers',
     requires: { id: 'collector_speed', level: 2 },
     baseCost: 85,
     scale: 1.3,
     maxLevel: 14,
     effect: (level) => 7 + level * 1.1,
-    describe: (level) => `Steer rate: ${(7 + level * 1.1).toFixed(1)}`
+    describe: (level) => `How fast they turn: ${(7 + level * 1.1).toFixed(1)}`
   }),
   u({
     id: 'collector_capacity',
-    name: 'Cargo Hold',
+    name: 'Bigger Load',
     tab: 'haul',
-    group: 'Bay',
+    group: 'The Pad',
     baseCost: 34,
     scale: 1.34,
     maxLevel: 24,
     effect: (level) => 2 + level * 2,
-    describe: (level) => `Capacity: ${2 + level * 2} chips`
+    describe: (level) => `Carries ${2 + level * 2} shards`
   }),
   u({
     id: 'unload_speed',
-    name: 'Refinery Pumps',
+    name: 'Faster Dump',
     tab: 'haul',
-    group: 'Bay',
+    group: 'The Pad',
     baseCost: 40,
     scale: 1.3,
     maxLevel: 18,
     effect: (level) => 5 + level * 5,
-    describe: (level) => `Unload: ${5 + level * 5} chips/s`
+    describe: (level) => `Dumps ${5 + level * 5} shards/s at the pad`
   }),
   u({
     id: 'depot_radius',
-    name: 'Pad Beacon',
+    name: 'Bigger Dump Zone',
     tab: 'haul',
-    group: 'Bay',
+    group: 'The Pad',
     baseCost: 48,
     scale: 1.32,
     maxLevel: 12,
     effect: (level) => 28 + level * 8,
-    describe: (level) => `Dump radius: ${28 + level * 8} px`
+    describe: (level) => `Can dump this far from REFINERY: ${28 + level * 8}`
   }),
   u({
     id: 'value_seek',
-    name: 'Assay Sensors',
+    name: 'Grab The Rich Ones',
     tab: 'haul',
-    group: 'Bay',
+    group: 'The Pad',
     baseCost: 95,
     scale: 1.45,
     maxLevel: 8,
     effect: (level) => Math.min(1, level * 0.14),
-    describe: (level) => `Prefer rich chips: ${(Math.min(1, level * 0.14) * 100).toFixed(0)}%`
+    describe: (level) => `Prefer pricey shards: ${(Math.min(1, level * 0.14) * 100).toFixed(0)}%`
   }),
   u({
     id: 'cargo_compress',
-    name: 'Ore Press',
+    name: 'Squeeze More In',
     tab: 'haul',
-    group: 'Logistics',
+    group: 'Shortcuts',
     requires: { id: 'collector_capacity', level: 4 },
     baseCost: 160,
     scale: 1.4,
     maxLevel: 12,
     effect: (level) => level * 0.1,
-    describe: (level) => `Bonus capacity: +${Math.round(level * 10)}%`
+    describe: (level) => `Extra space: +${Math.round(level * 10)}%`
   }),
   u({
     id: 'return_boost',
-    name: 'Home Burn',
+    name: 'Rush Home',
     tab: 'haul',
-    group: 'Logistics',
+    group: 'Shortcuts',
     requires: { id: 'collector_speed', level: 3 },
     baseCost: 120,
     scale: 1.34,
     maxLevel: 12,
     effect: (level) => 1 + level * 0.09,
-    describe: (level) => `Return speed: ×${(1 + level * 0.09).toFixed(2)}`
+    describe: (level) => `Faster when heading to dump: ×${(1 + level * 0.09).toFixed(2)}`
   }),
   u({
     id: 'depot_pull',
-    name: 'Pad Gravity',
+    name: 'Magnet At The Pad',
     tab: 'haul',
-    group: 'Logistics',
+    group: 'Shortcuts',
     requires: { id: 'collector_magnet', level: 3 },
     baseCost: 140,
     scale: 1.36,
     maxLevel: 10,
     effect: (level) => level * 0.16,
-    describe: (level) => `Magnet near pad: +${Math.round(level * 16)}%`
+    describe: (level) => `Stronger magnet near REFINERY: +${Math.round(level * 16)}%`
   }),
   u({
     id: 'ore_value_mult',
-    name: 'Refining Process',
+    name: 'Better Pay',
     tab: 'haul',
-    group: 'Assay',
+    group: 'Payday',
     baseCost: 48,
     scale: 1.38,
     maxLevel: 80,
     effect: (level) => 1 + level * 0.32,
-    describe: (level) => `Ore value: ×${(1 + level * 0.32).toFixed(2)}`
+    describe: (level) => `Each shard is worth ×${(1 + level * 0.32).toFixed(2)}`
   }),
   u({
     id: 'rich_veins',
-    name: 'Rich Veins',
+    name: 'Richness',
     tab: 'haul',
-    group: 'Assay',
+    group: 'Payday',
     baseCost: 68,
     scale: 1.36,
     maxLevel: 15,
-    effect: (level) => 1 + level * 0.18,
-    describe: (level) => `Shatter chips: ×${(1 + level * 0.18).toFixed(2)}`
+    effect: (level) => richnessMult(level),
+    describe: (level) => `${shardsOnBreak(level)} shards when a rock breaks`
   }),
   u({
     id: 'rare_shift',
-    name: 'Prospecting Array',
-    tab: 'haul',
-    group: 'Assay',
+    name: 'Rarer Rocks',
+    tab: 'scan',
+    group: 'The Field',
     baseCost: 85,
     scale: 1.42,
     maxLevel: 10,
     effect: (level) => Math.min(0.38, level * 0.038),
-    describe: (level) => `Rare bias: +${(Math.min(0.38, level * 0.038) * 100).toFixed(0)}%`
+    describe: (level) =>
+      level <= 0
+        ? 'Normal mix of rocks'
+        : `Fancy rocks +${(Math.min(0.38, level * 0.038) * 100).toFixed(0)}%`
   }),
   u({
     id: 'chip_split',
     name: 'Fracture Plan',
     tab: 'haul',
-    group: 'Assay',
+    group: 'Payday',
+    hidden: true,
     requires: { id: 'rich_veins', level: 2 },
     baseCost: 170,
     scale: 1.38,
     maxLevel: 10,
     effect: (level) => 1 + level * 0.12,
-    describe: (level) => `Break chips: ×${(1 + level * 0.12).toFixed(2)}`
+    describe: (level) => `Extra shards: ×${(1 + level * 0.12).toFixed(2)}`
   }),
   u({
     id: 'asteroid_max',
-    name: 'Claim Density',
+    name: 'More Rocks',
     tab: 'scan',
-    group: 'Scanners',
+    group: 'The Field',
     baseCost: TUNING.densityBaseCost,
     scale: TUNING.densityScale,
     maxLevel: TUNING.fieldCap - TUNING.startRocks,
     effect: (level) => fieldRocks(level),
-    describe: (level) => `Max rocks: ${fieldRocks(level)} / ${TUNING.fieldCap}`
+    describe: (level) => `Rocks on the field: ${fieldRocks(level)} / ${TUNING.fieldCap}`
   }),
   u({
     id: 'asteroid_spawn_rate',
-    name: 'Drift Frequency',
+    name: 'Rocks Sooner',
     tab: 'scan',
-    group: 'Scanners',
+    group: 'The Field',
     baseCost: TUNING.spawnBaseCost,
     scale: TUNING.spawnScale,
     maxLevel: TUNING.spawnMaxLevel,
     effect: (level) => spawnDelay(level),
-    describe: (level) => `Spawn delay: ${spawnDelay(level).toFixed(2)} s`
+    describe: (level) => `New rock every ${spawnDelay(level).toFixed(2)} s`
   }),
   u({
     id: 'survey_range',
-    name: 'Claim Size',
+    name: 'Bigger Field',
     tab: 'scan',
-    group: 'Scanners',
+    group: 'The Field',
     baseCost: TUNING.surveyBaseCost,
     scale: TUNING.surveyScale,
     maxLevel: TUNING.surveyMaxLevel,
     effect: (level) => fieldSize(level),
-    describe: (level) => `Claim size: ${fieldSize(level)}×${fieldSize(level)}`
+    describe: (level) => `Field size: ${fieldSize(level)}×${fieldSize(level)}`
   }),
   u({
     id: 'rock_drift',
-    name: 'Unstable Belt',
+    name: 'Faster Drift',
     tab: 'scan',
-    group: 'Scanners',
+    group: 'The Field',
     requires: { id: 'asteroid_max', level: 3 },
     baseCost: 150,
     scale: 1.4,
     maxLevel: 8,
     effect: (level) => level * 12,
     describe: (level) =>
-      level <= 0 ? 'Base drift only' : `Extra drift: +${level * 12} px/s`
+      level <= 0 ? 'Rocks drift at their normal speed' : `Rocks drift faster: +${level * 12}`
   }),
 
   u({
     id: 'salvage_rights',
-    name: 'Salvage Rights',
+    name: 'Keep Cash On Warp',
     tab: 'sector',
-    group: 'Company Charter',
+    group: 'Keep Forever',
     permanent: true,
     baseCost: 1200,
     scale: 1.55,
     maxLevel: 10,
     effect: (level) => Math.min(0.55, level * 0.055),
-    describe: (level) => `Keep ${(Math.min(0.55, level * 0.055) * 100).toFixed(0)}% credits on expansion`
+    describe: (level) => `Keep ${(Math.min(0.55, level * 0.055) * 100).toFixed(0)}% of your cash when you warp`
   }),
   u({
     id: 'veteran_picks',
-    name: 'Veteran Picks',
+    name: 'Forever Laser',
     tab: 'sector',
-    group: 'Company Charter',
+    group: 'Keep Forever',
     permanent: true,
     baseCost: 1500,
     scale: 1.48,
     maxLevel: 15,
     effect: (level) => level * 2,
-    describe: (level) => `Permanent laser damage +${level * 2}`
+    describe: (level) => `Laser damage that survives warps: +${level * 2}`
   }),
   u({
     id: 'charter_hold',
-    name: 'Charter Holds',
+    name: 'Forever Cargo',
     tab: 'sector',
-    group: 'Company Charter',
+    group: 'Keep Forever',
     permanent: true,
     baseCost: 1800,
     scale: 1.5,
     maxLevel: 8,
     effect: (level) => level,
-    describe: (level) => `Permanent cargo +${level}`
+    describe: (level) => `Extra cargo that survives warps: +${level}`
   }),
   u({
     id: 'offline_ops',
     name: 'Night Shift',
     tab: 'sector',
-    group: 'Company Charter',
+    group: 'Keep Forever',
     permanent: true,
     baseCost: 2000,
     scale: 1.52,
     maxLevel: 12,
     effect: (level) => 0.42 + level * 0.055,
-    describe: (level) => `Offline efficiency: ${((0.42 + level * 0.055) * 100).toFixed(0)}%`
+    describe: (level) => `Earn this much while the game is closed: ${((0.42 + level * 0.055) * 100).toFixed(0)}%`
   }),
   u({
     id: 'starting_capital',
-    name: 'Treasury Buffer',
+    name: 'Warp Bonus Cash',
     tab: 'sector',
-    group: 'Company Charter',
+    group: 'Keep Forever',
     permanent: true,
     baseCost: 2200,
     scale: 1.6,
@@ -699,144 +716,144 @@ export const UPGRADE_DEFS = [
     effect: (level) => Math.floor(20 * Math.pow(2.1, level)),
     describe: (level) =>
       level <= 0
-        ? 'No expansion stipend'
-        : `Expansion stipend: $${Math.floor(20 * Math.pow(2.1, level)).toLocaleString('en-US')}`
+        ? 'No extra cash when you warp'
+        : `Cash gift on warp: $${Math.floor(20 * Math.pow(2.1, level)).toLocaleString('en-US')}`
   }),
   u({
     id: 'veteran_hulls',
-    name: 'Veteran Hulls',
+    name: 'Forever Drill Health',
     tab: 'sector',
-    group: 'Company Charter',
+    group: 'Keep Forever',
     permanent: true,
     baseCost: 2400,
     scale: 1.5,
     maxLevel: 12,
     effect: (level) => level * 8,
-    describe: (level) => `Permanent drill HP +${level * 8}`
+    describe: (level) => `Drill health that survives warps: +${level * 8}`
   }),
   u({
     id: 'veteran_engines',
-    name: 'Veteran Engines',
+    name: 'Forever Drill Speed',
     tab: 'sector',
-    group: 'Company Charter',
+    group: 'Keep Forever',
     permanent: true,
     baseCost: 2600,
     scale: 1.5,
     maxLevel: 12,
     effect: (level) => level * 6,
-    describe: (level) => `Permanent drill speed +${level * 6}`
+    describe: (level) => `Drill speed that survives warps: +${level * 6}`
   }),
   u({
     id: 'veteran_optics',
-    name: 'Veteran Optics',
+    name: 'Forever Lucky Drills',
     tab: 'sector',
-    group: 'Company Charter',
+    group: 'Keep Forever',
     permanent: true,
     baseCost: 2600,
     scale: 1.52,
     maxLevel: 12,
     effect: (level) => level * 0.012,
-    describe: (level) => `Permanent drill crit +${(level * 1.2).toFixed(1)}%`
+    describe: (level) => `Lucky drill chance that survives warps: +${(level * 1.2).toFixed(1)}%`
   }),
   u({
     id: 'veteran_tether',
-    name: 'Veteran Tethers',
+    name: 'Forever Magnet',
     tab: 'sector',
-    group: 'Company Charter',
+    group: 'Keep Forever',
     permanent: true,
     baseCost: 2500,
     scale: 1.48,
     maxLevel: 10,
     effect: (level) => level * 5,
-    describe: (level) => `Permanent magnet +${level * 5} px`
+    describe: (level) => `Magnet reach that survives warps: +${level * 5}`
   }),
   u({
     id: 'charter_yield',
-    name: 'Assay Charter',
+    name: 'Forever Better Pay',
     tab: 'sector',
-    group: 'Company Charter',
+    group: 'Keep Forever',
     permanent: true,
     baseCost: 2800,
     scale: 1.54,
     maxLevel: 12,
     effect: (level) => 1 + level * 0.08,
-    describe: (level) => `Permanent ore value ×${(1 + level * 0.08).toFixed(2)}`
+    describe: (level) => `Shard pay that survives warps: ×${(1 + level * 0.08).toFixed(2)}`
   }),
   u({
     id: 'expansion_scout',
-    name: 'Scout Fees',
+    name: 'Cheaper Next Sector',
     tab: 'sector',
-    group: 'Company Charter',
+    group: 'Keep Forever',
     permanent: true,
     baseCost: 3000,
     scale: 1.56,
     maxLevel: 8,
     effect: (level) => Math.min(0.4, level * 0.05),
-    describe: (level) => `Next sector unlock −${(Math.min(0.4, level * 0.05) * 100).toFixed(0)}%`
+    describe: (level) => `Need ${(Math.min(0.4, level * 0.05) * 100).toFixed(0)}% less ore to unlock the next sector`
   })
 ];
 
 const UPGRADE_HELP = {
-  tap_damage: 'Each laser bolt deals this much damage when it hits a rock. Higher damage cracks asteroids in fewer shots.',
-  tap_rate: 'How long you wait between bolts. Lower interval means you can tap again sooner.',
-  tap_radius: 'How close a tap has to be to a rock to lock on. Bigger overlay is more forgiving.',
-  tap_chips: 'Gives a chance for chips to leak off a rock while you are still damaging it, not only when it shatters.',
-  tap_crit: 'Chance for a laser hit to crit and deal extra damage. Separate from drill crits.',
-  tap_splash: 'A portion of laser damage splashes onto nearby rocks.',
-  tap_combo: 'Each tap in a streak adds this bonus to laser damage. Drop the streak and it resets.',
-  tap_soften: 'Extra laser damage against high-HP rocks. The tougher the asteroid, the more this pays.',
-  tap_lucky: 'When Chip Harvest already leaks a chip, this can drop one more.',
-  tap_overcharge: 'Every Nth laser shot detonates for a big damage spike.',
-  tap_pierce: 'How far splash damage reaches after Shockwave Bit is on.',
-  tap_multihit: 'A second nearby rock takes a fraction of the shot. Needs a decent aim overlay.',
-  drone_max_count: 'Each level is one launch slot. You cannot field more live drills than you have licenses.',
-  drone_damage: 'How much hull a drill deals when it rams a rock.',
-  drone_hull: 'Drill hit points. Rocks trade hull. Walls do not.',
-  drone_speed: 'How fast drills fly across the claim.',
-  launch_discount: 'Cuts the cash fee each time you launch a drill.',
-  drone_recoil: 'When a drill rams a rock, it pays this fraction of the damage in hull. Lower is better.',
-  bounce_damp: 'How much speed a drill keeps after a wall bounce. This is not a shield — rocks still cost hull.',
-  probe_crit: 'Chance for a drill ram to crit. Laser crits stay on their own upgrade.',
-  probe_crit_dmg: 'How hard a drill crit hits when Deadeye Core is on.',
-  bank_shot: 'After a wall bounce, the next rock hit deals bonus damage for a short window.',
-  auto_launch: 'Launches a drill on a timer whenever a slot is free. Still pays the launch fee every time.',
-  burst_launch: 'Shortens the delay after you manually buy a drill before you can buy another.',
-  dual_launch: 'Chance to fire a second drill with the launch, at half fee.',
-  scrap_rebate: 'When a drill dies, refund this percent of the fee you paid to launch it.',
-  hull_regen: 'Live drills slowly repair hull while they fly.',
-  guidance: 'Drills curve toward rocks. Higher homing means tighter turns.',
+  tap_damage: 'How hard each laser shot hits. Higher damage breaks rocks in fewer taps.',
+  tap_rate: 'How long you wait after a shot before you can fire again. Lower is faster.',
+  tap_radius: 'How close your tap needs to be to a rock. Bigger number means you can miss by more.',
+  tap_chips: 'Shards can fall off while you are still shooting, not only when the rock breaks. Those shards are worth a bit less.',
+  tap_crit: 'Chance for a laser hit to be a lucky hit and deal extra damage. Separate from lucky drill hits.',
+  tap_splash: 'Part of the laser damage also hits rocks next to the one you tapped.',
+  tap_combo: 'Each tap in a row makes the laser hit a little harder. Miss, and the streak resets.',
+  tap_soften: 'Extra laser damage against the really tough rocks.',
+  tap_lucky: 'When Early Shards already knocks a shard loose, this can drop one more.',
+  tap_overcharge: 'Every so many laser shots, one of them is a huge blast.',
+  tap_pierce: 'How far the shockwave reaches after you have Shockwave.',
+  tap_multihit: 'A second nearby rock takes part of the shot. Needs Easier Aim first.',
+  drone_max_count: 'Each level lets you fly one more drill at the same time.',
+  drone_damage: 'How hard a drill hits a rock. Does not change how hard the rock hits back.',
+  drone_hull: 'How much health a drill has. Each level is +5%. Rocks wear it down. Walls do not.',
+  drone_speed: 'How fast drills fly.',
+  launch_discount: 'Makes each drill launch cheaper.',
+  drone_recoil: 'How much of a rock\'s punch a drill takes. Lower lasts longer. Does not make your hits weaker.',
+  bounce_damp: 'How much speed a drill keeps after bouncing off a wall. Walls never cost health.',
+  probe_crit: 'Chance for a drill hit to be a lucky hit. Laser lucky hits are a different upgrade.',
+  probe_crit_dmg: 'How hard a lucky drill hit is, once Lucky Drill Hits is on.',
+  bank_shot: 'After a wall bounce, the next rock hit deals bonus damage for a short moment.',
+  auto_launch: 'Launches a drill on its own whenever a slot is free. You still pay the launch fee every time.',
+  burst_launch: 'Shortens the wait after you buy a drill before you can buy another.',
+  dual_launch: 'Chance to launch a second drill with the first, at half price.',
+  scrap_rebate: 'When a drill dies, you get this percent of the launch fee back.',
+  hull_regen: 'Flying drills slowly heal.',
+  guidance: 'Drills steer toward rocks.',
   chain_shot: 'After hitting a rock, a drill can jump and hit another nearby rock.',
-  probe_mass: 'Bigger drill radius — easier rams, chunkier silhouette.',
-  collector_max: 'How many gold haulers you own. They keep working the claim on their own.',
-  collector_speed: 'How fast haulers fly to chips and back to REFINERY.',
-  collector_magnet: 'How far away a hauler can snap up a chip.',
+  probe_mass: 'A bigger drill is easier to ram into rocks.',
+  collector_max: 'How many gold haulers you own. They pick up shards and dump them at REFINERY by themselves.',
+  collector_speed: 'How fast haulers fly to shards and back to REFINERY.',
+  collector_magnet: 'How far away a hauler can grab a shard.',
   hauler_agility: 'How quickly haulers turn. Helps them line up dumps and pickups.',
-  collector_capacity: 'Chips one hauler can carry before it must dump at REFINERY.',
-  unload_speed: 'How fast a hauler empties chips once it is on the REFINERY pad.',
+  collector_capacity: 'How many shards one hauler can carry before it must dump at REFINERY.',
+  unload_speed: 'How fast a hauler empties shards once it is on the REFINERY pad.',
   depot_radius: 'How close a hauler has to be to REFINERY before it can dump.',
-  value_seek: 'Haulers prefer richer chips on the ground when this is high.',
-  cargo_compress: 'Bonus cargo capacity, as a percent on top of Cargo Hold.',
+  value_seek: 'Haulers prefer the shards that are worth more money.',
+  cargo_compress: 'Extra cargo space on top of Bigger Load.',
   return_boost: 'Haulers fly faster when they are heading back to dump.',
-  depot_pull: 'Extra magnet strength when a hauler is near REFINERY.',
-  ore_value_mult: 'Multiplies the cash each chip is worth when it dumps. Same chips, more pay.',
-  rich_veins: 'More chips drop when an asteroid fully shatters.',
-  rare_shift: 'Biases new rocks toward rarer, more valuable types. Quality, not quantity.',
-  chip_split: 'More chips when a rock breaks apart. Stacks with Rich Veins.',
-  asteroid_max: 'How many rocks can be on the claim at once.',
-  asteroid_spawn_rate: 'How quickly a new rock drifts in after one leaves.',
-  survey_range: 'Grows the square claim. Bigger field, more room to fly — walls move out.',
-  rock_drift: 'Rocks drift faster across the belt. More motion, more misses if you are sloppy.',
-  salvage_rights: 'Keep this percent of your cash when you warp to the next sector. Permanent.',
-  veteran_picks: 'Permanent laser damage that survives sector warps.',
-  charter_hold: 'Permanent extra cargo space that survives warps.',
-  offline_ops: 'How much of your idle income you keep while the game is closed. Permanent.',
-  starting_capital: 'Cash stipend paid when you expand to a new sector. Permanent.',
-  veteran_hulls: 'Permanent drill HP that survives warps.',
-  veteran_engines: 'Permanent drill speed that survives warps.',
-  veteran_optics: 'Permanent drill crit chance that survives warps.',
-  veteran_tether: 'Permanent hauler magnet range that survives warps.',
-  charter_yield: 'Permanent ore-value multiplier that survives warps.',
-  expansion_scout: 'Cuts how much total ore you need before the next sector unlocks. Permanent.'
+  depot_pull: 'Stronger magnet when a hauler is near REFINERY.',
+  ore_value_mult: 'Each shard is worth more money when it dumps. Same number of shards, fatter paycheck.',
+  rich_veins: 'Every rock starts at 2 shards. Richness adds more shards when the rock breaks.',
+  rare_shift: 'New rocks are more likely to be the fancy kinds that pay more per shard. Not more shards — better shards.',
+  chip_split: 'Hidden leftover from older saves. Extra shards stacked on Richness.',
+  asteroid_max: 'How many rocks can be on the field at once.',
+  asteroid_spawn_rate: 'How quickly a new rock shows up after one leaves.',
+  survey_range: 'Grows the square field. Bigger field, more room to fly — the walls move out.',
+  rock_drift: 'Rocks drift faster. More motion, easier to miss if you are sloppy.',
+  salvage_rights: 'Keep this percent of your cash when you warp to the next sector. Stays forever.',
+  veteran_picks: 'Extra laser damage that stays when you warp.',
+  charter_hold: 'Extra cargo space that stays when you warp.',
+  offline_ops: 'How much you still earn while the game is closed. Stays forever.',
+  starting_capital: 'A cash gift when you warp to a new sector. Stays forever.',
+  veteran_hulls: 'Extra drill health that stays when you warp.',
+  veteran_engines: 'Extra drill speed that stays when you warp.',
+  veteran_optics: 'Extra lucky-drill chance that stays when you warp.',
+  veteran_tether: 'Extra magnet reach that stays when you warp.',
+  charter_yield: 'Shards pay more, and this stays when you warp.',
+  expansion_scout: 'You need less total ore before the next sector unlocks. Stays forever.'
 };
 
 for (const def of UPGRADE_DEFS) {
@@ -849,10 +866,10 @@ export const ASTEROID_TIERS = {
   common: {
     id: 'common',
     name: 'Common',
-    baseHp: 22,
+    baseHp: 20,
     radius: 26,
     color: '#94a3b8',
-    yield: 1,
+    yield: 2,
     unitValue: 1.0
   },
   iron: {
@@ -879,7 +896,7 @@ export const ASTEROID_TIERS = {
     baseHp: 140,
     radius: 22,
     color: '#67e8f9',
-    yield: 3,
+    yield: 2,
     unitValue: 7.5,
     drift: 42
   },
@@ -889,7 +906,7 @@ export const ASTEROID_TIERS = {
     baseHp: 380,
     radius: 42,
     color: '#cbd5e1',
-    yield: 4,
+    yield: 2,
     unitValue: 12.0
   },
   gold: {
@@ -898,7 +915,7 @@ export const ASTEROID_TIERS = {
     baseHp: 900,
     radius: 46,
     color: '#fbbf24',
-    yield: 5,
+    yield: 2,
     unitValue: 28.0
   },
   platinum: {
@@ -907,7 +924,7 @@ export const ASTEROID_TIERS = {
     baseHp: 1400,
     radius: 44,
     color: '#e2e8f0',
-    yield: 6,
+    yield: 2,
     unitValue: 44.0
   },
   dark: {
@@ -916,7 +933,7 @@ export const ASTEROID_TIERS = {
     baseHp: 2000,
     radius: 52,
     color: '#a855f7',
-    yield: 8,
+    yield: 2,
     unitValue: 50.0
   },
   void: {
@@ -925,7 +942,7 @@ export const ASTEROID_TIERS = {
     baseHp: 5200,
     radius: 60,
     color: '#22d3ee',
-    yield: 12,
+    yield: 2,
     unitValue: 140.0
   },
   horizon: {
@@ -934,7 +951,7 @@ export const ASTEROID_TIERS = {
     baseHp: 9800,
     radius: 68,
     color: '#fb7185',
-    yield: 16,
+    yield: 2,
     unitValue: 260.0
   }
 };
@@ -1009,7 +1026,7 @@ export const SECTORS = [
     level: 5,
     name: 'Kuiper Yard',
     short: 'Kuiper',
-    lore: 'Platinum and dark ice. Charter upgrades before you warp.',
+    lore: 'Buy Keep Forever upgrades before you warp.',
     tint: 'rgba(168, 85, 247, 0.08)',
     unlock: 6500000,
     width: 1040,
@@ -1026,7 +1043,7 @@ export const SECTORS = [
     level: 6,
     name: 'Deep Space',
     short: 'Deep',
-    lore: 'Voidglass sings when it breaks. Bring spare hulls.',
+    lore: 'Voidglass sings when it breaks. Bring extra drill health.',
     tint: 'rgba(34, 211, 238, 0.09)',
     unlock: 42000000,
     width: 1180,
@@ -1244,7 +1261,7 @@ export function zeroUpgrades({ keepPermanent = false, current } = {}) {
 export function groupedUpgrades(tab) {
   const groups = [];
   const map = new Map();
-  for (const def of UPGRADE_DEFS.filter((item) => item.tab === tab)) {
+  for (const def of UPGRADE_DEFS.filter((item) => item.tab === tab && !item.hidden)) {
     if (!map.has(def.group)) {
       const group = { title: def.group, blurb: GROUP_BLURBS[def.group] || '', items: [] };
       map.set(def.group, group);

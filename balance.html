@@ -92,7 +92,7 @@
     <div id="log"></div>
   </section>
   <script type="module">
-    import { TUNING } from './js/sim/Tuning.js';
+    import { TUNING } from './js/sim/Tuning.js?v=50';
     import { catalogCosts, simulateGreedy, snapshot } from './js/sim/Economy.js';
     import { applyTuningToUpgrades, zeroUpgrades } from './js/ui/Upgrades.js';
 
@@ -141,7 +141,7 @@
       document.getElementById('now').innerHTML = `
         <p>Tap interval <strong>${snap.tapInterval.toFixed(2)}s</strong> · rocks <strong>${snap.maxAsteroids}</strong> · spawn <strong>${snap.spawnDelay.toFixed(2)}s</strong></p>
         <p>Tap DPS ${fmt(snap.tapDps)} · TTK ${fmt(snap.ttk)}s · ore/s ${fmt(snap.orePerSec)} · bottleneck <span class="pill ${snap.bottleneck}">${snap.bottleneck}</span></p>
-        <p>Mean rock HP ${fmt(snap.belt.hp)} · chip $${fmt(snap.belt.value)} · haul cap ${fmt(snap.haulCap)}/s</p>
+        <p>Mean rock HP ${fmt(snap.belt.hp)} · shard $${fmt(snap.belt.value)} · haul cap ${fmt(snap.haulCap)}/s</p>
         <div class="bar"><span style="width:${Math.round(Math.min(1, snap.fill) * 100)}%"></span></div>
       `;
       const costs = catalogCosts();

@@ -2,7 +2,7 @@
   "id": "/ricochet-mining/",
   "name": "Ricochet Mining Co.",
   "short_name": "RicochetMine",
-  "description": "Tap-to-mine kinetic asteroid incremental. Laser rocks, launch paid drills, haul ore to the refinery pad.",
+  "description": "Tap rocks, haul shards to the refinery, buy upgrades. Drills bounce off walls.",
   "start_url": "./",
   "scope": "./",
   "display": "fullscreen",

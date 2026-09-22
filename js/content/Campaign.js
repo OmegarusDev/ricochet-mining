@@ -2,19 +2,19 @@ export const TUTORIAL_STEPS = [
   {
     id: 'welcome',
     title: 'Ricochet Mining Co.',
-    body: 'Welcome to Ricochet Mining Co! You have been contracted to mine asteroids in this sector of space. Shatter rock, haul chips to the REFINERY pad, and spend the take on better kit. HQ posts your work as contracts.',
+    body: 'Welcome to Ricochet Mining Co! Break rocks, haul the shiny shards to the REFINERY pad, and spend the money on upgrades. Jobs on the top bar pay you extra.',
     next: true
   },
   {
     id: 'jobs',
     title: 'Open Jobs',
-    body: 'Start by opening Jobs on the top bar. That is where HQ pays you.',
+    body: 'Start by opening Jobs on the top bar. That is where extra cash comes from.',
     next: false
   },
   {
     id: 'good',
     title: 'Good.',
-    body: 'Finish a contract, then Claim pay. Your first job is already on the board.',
+    body: 'Finish a job, then tap Claim pay. Your first job is already on the board.',
     next: true
   }
 ];
@@ -22,7 +22,7 @@ export const TUTORIAL_STEPS = [
 export const TUTORIAL_DONE = {
   id: 'done',
   title: 'Congratulations',
-  body: 'Your induction is complete. You should know everything you need to make the company proud. You can see these tips again at any time (minus the job payouts) by pressing Replay induction in Settings.',
+  body: 'You know the loop. Break rocks, haul shards, buy upgrades. You can see these tips again any time (without the job payouts) by pressing Replay tips in Settings.',
   next: true
 };
 
@@ -41,7 +41,7 @@ export const TUTORIAL_JOBS = [
     stat: 'asteroidsBroken',
     amounts: [1],
     reward: () => 12,
-    blurb: 'Keep firing until it splits. Ore drops on the shatter.'
+    blurb: 'Keep firing until it breaks. Two shards drop.'
   },
   {
     id: 'tut_dump',
@@ -49,11 +49,11 @@ export const TUTORIAL_JOBS = [
     stat: 'deposits',
     amounts: [1],
     reward: () => 14,
-    blurb: 'Gold haulers dump chips at REFINERY. Claim this when a load lands.'
+    blurb: 'Gold haulers dump shards at REFINERY. Claim this when a load lands.'
   },
   {
     id: 'tut_view',
-    verb: 'Learn the claim view',
+    verb: 'Look around',
     stat: 'viewLessons',
     amounts: [3],
     reward: () => 10,
@@ -65,15 +65,15 @@ export const TUTORIAL_JOBS = [
     stat: 'upgradesBought',
     amounts: [1],
     reward: () => 10,
-    blurb: 'Open Upgrades or tap buy cheapest on the peek bar.'
+    blurb: 'Open Upgrades, or tap buy cheapest on the bar at the bottom.'
   },
   {
     id: 'tut_license',
-    verb: 'Buy a drill license',
+    verb: 'Buy a drill slot',
     stat: 'drillLicenses',
     amounts: [1],
     reward: () => 16,
-    blurb: 'Drills tab: Drill License. That is your first launch slot.'
+    blurb: 'Drills tab: Drill Slot. That lets you fly one drill.'
   },
   {
     id: 'tut_launch',
@@ -81,7 +81,7 @@ export const TUTORIAL_JOBS = [
     stat: 'launches',
     amounts: [1],
     reward: () => 12,
-    blurb: 'Buy Drill on the peek bar. Rocks trade hull. Walls do not.'
+    blurb: 'Buy Drill on the bar at the bottom. Rocks wear the drill down. Walls do not.'
   },
   {
     id: 'tut_wall',
@@ -89,7 +89,7 @@ export const TUTORIAL_JOBS = [
     stat: 'wallBounces',
     amounts: [1],
     reward: () => 10,
-    blurb: 'Let the drill hit a claim wall. Walls bounce free. Rocks are what cost hull.',
+    blurb: 'Let the drill hit a wall. Walls bounce for free. Rocks are what wear the drill down.',
     fromNow: true
   },
   {
@@ -98,24 +98,24 @@ export const TUTORIAL_JOBS = [
     stat: 'asteroidsBroken',
     amounts: [5],
     reward: () => 20,
-    blurb: 'Five more rocks. Laser or drill, HQ does not care.',
+    blurb: 'Five more rocks. Laser or drill, both count.',
     fromNow: true
   },
   {
     id: 'tut_license2',
-    verb: 'Buy a second license',
+    verb: 'Buy a second drill slot',
     stat: 'drillLicenses',
     amounts: [2],
     reward: () => 18,
-    blurb: 'One more Drill License. You cannot field two birds on a single slot.'
+    blurb: 'One more Drill Slot. You cannot fly two drills with only one slot.'
   },
   {
     id: 'tut_pair',
-    verb: 'Field two drills',
+    verb: 'Fly two drills',
     stat: 'maxLiveDrones',
     amounts: [2],
     reward: () => 22,
-    blurb: 'Launch a second drill while the first is still alive. The next launch costs 20% more.'
+    blurb: 'Launch a second drill while the first is still alive. The next launch costs double.'
   }
 ];
 
@@ -150,7 +150,7 @@ export const JOB_DEFS = [
   },
   {
     id: 'earn',
-    verb: 'Bank credits',
+    verb: 'Earn cash',
     stat: 'lifetimeCredits',
     amounts: [25, 80, 220, 700, 2200],
     reward: (n, sector) => 8 + n * 0.22 * Math.sqrt(sector)
@@ -164,7 +164,7 @@ export const JOB_DEFS = [
   },
   {
     id: 'crits',
-    verb: 'Land crits',
+    verb: 'Land lucky hits',
     stat: 'crits',
     amounts: [2, 6, 14, 28, 50],
     reward: (n, sector) => 15 + n * 2.2 * sector
@@ -196,42 +196,42 @@ export const EVENT_DEFS = [
   {
     id: 'gold_rush',
     name: 'Gold rush',
-    blurb: 'Ore assays hot. Chip values doubled.',
+    blurb: 'Shards pay double.',
     duration: 34,
     color: '#f59e0b'
   },
   {
     id: 'meteor',
     name: 'Meteor storm',
-    blurb: 'Rocks warp in fast. Belt is crowded.',
+    blurb: 'Rocks show up fast. The field is crowded.',
     duration: 38,
     color: '#f87171'
   },
   {
     id: 'aftershock',
     name: 'Aftershock',
-    blurb: 'Chip Harvest leaks pay almost double (needs the upgrade).',
+    blurb: 'Early Shards pay almost double (needs the upgrade).',
     duration: 28,
     color: '#38bdf8'
   },
   {
     id: 'dense',
     name: 'Dense belt',
-    blurb: 'Rocks drift in faster. Cap stays 25.',
+    blurb: 'Rocks show up faster. Still max 25 on the field.',
     duration: 32,
     color: '#a855f7'
   },
   {
     id: 'quiet',
     name: 'Quiet sector',
-    blurb: 'Fewer rocks, richer cores.',
+    blurb: 'Fewer rocks, but they pay more.',
     duration: 36,
     color: '#22d3ee'
   },
   {
     id: 'tailwind',
-    name: 'Ion tailwind',
-    blurb: 'Haulers run hot. Return speed up.',
+    name: 'Fast haulers',
+    blurb: 'Haulers fly home faster.',
     duration: 30,
     color: '#fbbf24'
   },
@@ -244,8 +244,8 @@ export const EVENT_DEFS = [
   },
   {
     id: 'deadeye',
-    name: 'Deadeye window',
-    blurb: 'Drill crits run hot. Laser crits stay their own tree.',
+    name: 'Lucky drills',
+    blurb: 'Lucky drill hits run hot. Laser lucky hits stay on their own upgrade.',
     duration: 28,
     color: '#38bdf8'
   }
@@ -253,8 +253,8 @@ export const EVENT_DEFS = [
 
 export const MILESTONES = [
   { id: 'first_pay', name: 'Payroll', test: (s) => s.deposits >= 1, reward: 10 },
-  { id: 'first_buy', name: 'Tooling', test: (s) => s.upgradesBought >= 1, reward: 14 },
-  { id: 'first_bird', name: 'First bird', test: (s) => s.launches >= 1, reward: 22 },
+  { id: 'first_buy', name: 'First upgrade', test: (s) => s.upgradesBought >= 1, reward: 14 },
+  { id: 'first_bird', name: 'First drill', test: (s) => s.launches >= 1, reward: 22 },
   { id: 'first_bank', name: 'Rebound', test: (s) => s.bankHits >= 1, reward: 28 },
   { id: 'rocks_10', name: 'Surveyor', test: (s) => s.asteroidsBroken >= 10, reward: 30 },
   { id: 'taps_80', name: 'Calloused', test: (s) => s.taps >= 80, reward: 45 },
@@ -265,7 +265,7 @@ export const MILESTONES = [
   { id: 'bounce_50', name: 'Cushion kid', test: (s) => s.wallBounces >= 50, reward: 70 },
   { id: 'bank_20', name: 'Geometry', test: (s) => s.bankHits >= 20, reward: 90 },
   { id: 'lost_5', name: 'Scrap lord', test: (s) => s.probesLost >= 5, reward: 50 },
-  { id: 'life_2k', name: 'Going concern', test: (s) => s.lifetimeCredits >= 2000, reward: 120 },
+  { id: 'life_2k', name: 'Big earner', test: (s) => s.lifetimeCredits >= 2000, reward: 120 },
   { id: 'jobs_6', name: 'Contractor', test: (s) => s.jobsCompleted >= 6, reward: 80 },
   { id: 'rocks_80', name: 'Belt butcher', test: (s) => s.asteroidsBroken >= 80, reward: 160 }
 ];
@@ -285,7 +285,7 @@ export function jobById(id) {
 export function jobLabel(job) {
   const def = jobById(job.defId);
   if (!def) {
-    return 'Contract';
+    return 'Job';
   }
   return `${def.verb} · ${job.amount}`;
 }

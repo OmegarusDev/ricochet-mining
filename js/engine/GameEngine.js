@@ -12,7 +12,7 @@ import { Asteroid } from '../entities/Asteroid.js';
 import { launchMiningDrone } from '../entities/MiningDrone.js';
 import { CollectorDrone } from '../entities/CollectorDrone.js';
 import { spawnOreBurst, spawnSalvageChip, spawnTapChip, releaseOre } from '../entities/OreParticle.js';
-import { TUNING, launchFee } from '../sim/Tuning.js';
+import { TUNING, launchFee, ramTaken } from '../sim/Tuning.js?v=50';
 import { Renderer } from '../view/Renderer.js';
 import {
   MILESTONES,
@@ -548,7 +548,7 @@ export class GameEngine {
       return false;
     }
     const level = this.state.upgrades[upgradeId] || 0;
-    if (level >= def.maxLevel) {
+    if (def.hidden || level >= def.maxLevel) {
       return false;
     }
     const cost = upgradeCost(def, level);
@@ -580,7 +580,7 @@ export class GameEngine {
     this.state.stats.lifetimeCredits += job.reward;
     this.state.jobs.completed += 1;
     this.state.stats.jobsCompleted = this.state.jobs.completed;
-    this.pushToast(`Contract paid · $${formatCredits(job.reward)}`);
+    this.pushToast(`Job paid · $${formatCredits(job.reward)}`);
     this.state.jobs.slots.splice(index, 1);
     if (job.tutorial) {
       this.state.jobs.tutorialIndex = (this.state.jobs.tutorialIndex || 0) + 1;
@@ -789,13 +789,13 @@ export class GameEngine {
       let label = `-${damage}`;
       let color = '#ef4444';
       if (meta.over) {
-        label = `${damage} OVER`;
+        label = `${damage} BOOM`;
         color = '#c4b5fd';
       } else if (meta.bank && meta.crit) {
-        label = `${damage} REBOUND CRIT`;
+        label = `${damage} LUCKY REBOUND`;
         color = '#fde68a';
       } else if (meta.crit) {
-        label = `${damage} CRIT`;
+        label = `${damage} LUCKY`;
         color = '#fde047';
       } else if (meta.bank) {
         label = `${damage} REBOUND`;
@@ -876,7 +876,8 @@ export class GameEngine {
       this.stats.hpMult || 1,
       this.asteroids,
       this.stats.rareShift,
-      this.stats.driftSpeed
+      this.stats.driftSpeed,
+      this.stats.sectorMult || 1
     );
   }
 
@@ -1006,14 +1007,13 @@ export class GameEngine {
           continue;
         }
         drone.rockLock = 0.12;
-        const trade = Math.max(1, Math.floor(drone.damage));
-        const recoilFrac = Number.isFinite(this.stats.recoilFrac) ? this.stats.recoilFrac : 1;
-        drone.hp -= Math.max(1, Math.floor(trade * recoilFrac));
+        const outgoing = Math.max(1, Math.floor(drone.damage));
+        drone.hp -= ramTaken(asteroid.bite || outgoing, this.stats.recoilFrac);
         const impact = new Vector2D(
           asteroid.pos.x + nx * asteroid.radius,
           asteroid.pos.y + ny * asteroid.radius
         );
-        let damage = trade;
+        let damage = outgoing;
         const charged = drone.bankT > 0;
         const banked = charged && this.stats.bankShot > 0;
         if (charged) {

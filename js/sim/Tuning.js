@@ -27,12 +27,18 @@ export const TUNING = {
   tapIntervalPerLevel: 0.058,
 
   probeCap: 20,
-  probeDamageBase: 3,
+  probeDamageBase: 5,
   probeDamageGrowth: 1.22,
+  probeHullBase: 20,
+  probeHullGrowth: 1.05,
+  /** Rock punch vs common HP. Later types hit harder; HP still scales faster so sponges stay sponges. */
+  rockBiteHpExponent: 0.35,
+  /** Extra punch from sector income. Keep below hpIncomeExponent so hull + Softer Wear outrun later belts. */
+  rockBiteSectorExponent: 0.1,
   probeSpeedStart: 30,
   probeSpeedPerLevel: 13,
-  startLaunchCost: 20,
-  launchCostGrowth: 0.2,
+  startLaunchCost: 10,
+  launchCostGrowth: 1,
 
   surveyStart: 400,
   surveyPerLevel: 80,
@@ -76,6 +82,23 @@ export function probeDamage(level) {
   return Math.floor(TUNING.probeDamageBase * Math.pow(TUNING.probeDamageGrowth, Math.max(0, level)));
 }
 
+export function probeHull(level) {
+  return Math.round(TUNING.probeHullBase * Math.pow(TUNING.probeHullGrowth, Math.max(0, level)));
+}
+
+/** How hard a rock hits a drill. Independent of drill damage. */
+export function rockBite(baseHp, incomeMult = 1) {
+  const hp = Math.max(1, baseHp);
+  const fromHp = Math.pow(hp / TUNING.probeHullBase, TUNING.rockBiteHpExponent);
+  const fromSector = Math.pow(Math.max(1, incomeMult), TUNING.rockBiteSectorExponent);
+  return Math.max(1, Math.round(TUNING.probeDamageBase * fromHp * fromSector));
+}
+
+export function ramTaken(bite, recoilFrac) {
+  const frac = Number.isFinite(recoilFrac) ? recoilFrac : 1;
+  return Math.max(1, Math.floor(Math.max(1, bite) * frac));
+}
+
 export function probeSpeed(level) {
   return TUNING.probeSpeedStart + Math.max(0, level) * TUNING.probeSpeedPerLevel;
 }
@@ -98,5 +121,5 @@ export function fieldSize(level) {
 export function launchFee(liveCount, discount) {
   const n = Math.max(0, liveCount);
   const raw = TUNING.startLaunchCost * Math.pow(1 + TUNING.launchCostGrowth, n);
-  return Math.max(5, Math.floor(raw * (1 - (discount || 0))));
+  return Math.max(1, Math.floor(raw * (1 - (discount || 0))));
 }

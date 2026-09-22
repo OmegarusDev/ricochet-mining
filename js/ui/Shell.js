@@ -763,7 +763,7 @@ export class Shell {
     }
     document.getElementById('expand-title').textContent = `Warp to ${next.name}`;
     document.getElementById('expand-copy').textContent =
-      `Laser, drills, and haul upgrades reset. Company charter stays. Salvage keeps ${Math.round(this.engine.stats.salvageKeep * 100)}% of cash plus any treasury stipend.`;
+      `Laser, drills, and haul upgrades reset. Keep Forever upgrades stay. You keep ${Math.round(this.engine.stats.salvageKeep * 100)}% of your cash plus any warp bonus cash.`;
     this._show(this.els.expandModal);
     return true;
   }
@@ -841,7 +841,7 @@ export class Shell {
     const maxed = level >= def.maxLevel;
     const cost = upgradeCost(def, level);
     const canBuy = unlocked && !maxed && credits >= cost;
-    const badge = def.permanent ? '<span class="perm">Permanent</span>' : '';
+    const badge = def.permanent ? '<span class="perm">Keep forever</span>' : '';
     const lock = unlocked ? '' : `<span class="lock">Needs ${requirementText(def)}</span>`;
     const meta = `Lv ${level}/${def.maxLevel} · ${def.describe(level)}`;
     return `
@@ -966,6 +966,9 @@ export class Shell {
     let best = null;
     for (const def of UPGRADE_DEFS) {
       if (!revealed.has(def.tab)) {
+        continue;
+      }
+      if (def.hidden) {
         continue;
       }
       if (def.id === 'bank_shot' && !isUnlocked(def, snap.upgrades) && !(snap.upgrades[def.id] || 0)) {
@@ -1138,7 +1141,7 @@ export class Shell {
     const s = snap.stats;
     const rebound = (snap.upgrades.bank_shot || 0) > 0;
     this.els.ledger.textContent =
-      `Taps ${s.taps.toLocaleString('en-US')} · Launches ${s.launches} · Lost ${s.probesLost} drills · Deposits ${s.deposits} · Rocks ${s.asteroidsBroken} · Crits ${s.crits} · Walls ${s.wallBounces || 0}${
+      `Taps ${s.taps.toLocaleString('en-US')} · Launches ${s.launches} · Lost ${s.probesLost} drills · Dumps ${s.deposits} · Rocks ${s.asteroidsBroken} · Lucky hits ${s.crits} · Walls ${s.wallBounces || 0}${
         rebound ? ` · Rebounds ${s.bankHits || 0}` : ''
       } · Jobs ${snap.jobsCompleted} · Lifetime $${formatCredits(s.lifetimeCredits)}`;
   }

@@ -1,4 +1,4 @@
-import { TUNING } from '../sim/Tuning.js';
+import { TUNING } from '../sim/Tuning.js?v=50';
 
 export class SoundEngine {
   constructor() {

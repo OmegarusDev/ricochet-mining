@@ -7,7 +7,7 @@
 
 # Ricochet Mining Co.
 
-A pocket asteroid claim. Laser rocks until they split, haul chips to the REFINERY pad, then spend cash on the next upgrade — or buy a drill that bounces walls for free and trades hull with rocks.
+A pocket asteroid claim. Laser rocks until they break, haul shards to the REFINERY pad, then spend cash on upgrades — or buy a drill that bounces walls for free and wears down on rocks.
 
 ## Play
 
@@ -26,15 +26,15 @@ If an older home-screen icon still shows the clock, remove it and install again 
 
 ## Loop
 
-**Laser** — tap a rock. A red bolt fires from the pad; ore drops when the rock shatters. Laser Emitter starts at **5 damage**; Laser Cadence starts at **2.00 s**. **Drills** — you start with **0** launch slots. **Drill License** (20 levels) adds one slot each. The first launch is **$20**; each drill already in play adds **20%**. Walls bounce them without hull loss. Rocks trade HP. **Rebound** (Drills tab, after Elastic Plating) is hidden until it unlocks: then a wall bounce charges the next rock hit. **Haul** — gold haulers dump at the pad; unclaimed chips are dim. A hauler that is closer to the pad than to new ore finishes the dump first. **2x** on the HUD speeds the whole sim — bolts, drills, haulers, and events. Rocks that wrap the belt fade at the claim edge. **Survey** — rock cap, spawn rate, and Claim Size (the claim square; deliberately expensive). **Claim** — sector warps and Company Charter. Tap an upgrade card (not Buy) to read exactly what it does.
+**Laser** — tap a rock. A red bolt fires from the pad; **2 shards** drop when the rock breaks. Laser Power starts at **5 damage**; Faster Shots starts at **2.00 s**. **Drills** — you start with **0** slots. **Drill Slot** (20 levels) adds one each. Stock drills deal **5 damage** and have **20 health** (+5% per Tougher Drill). Commons start at **20 HP**. The first launch is **$10**; each drill already in play doubles the fee. Walls bounce them without costing health. Rocks hit back with their own punch (Harder Hits and Softer Wear are separate). **Rebound** (Drills tab, after Bouncy Armor) is hidden until it unlocks: then a wall bounce charges the next rock hit. **Haul** — gold haulers dump at the pad; unclaimed shards are dim. A hauler closer to the pad than to new ore finishes the dump first. **Payday** — Richness adds more shards; Better Pay makes each shard worth more; Rarer Rocks (Survey) biases fancy types. **2x** on the HUD speeds the whole sim. **Survey** — more rocks, rocks sooner, and Bigger Field (the claim square; deliberately expensive). **Claim** — sector warps and Keep Forever upgrades. Tap an upgrade card (not Buy) to read exactly what it does.
 
-New players get a welcome, then **Jobs**. The first contracts are: test your laser, destroy an asteroid, unload at the refinery, learn the claim view, buy an upgrade, buy a drill license, launch a drill, bounce a wall, mine 5 more rocks, buy a second license, field two drills at once. After the last contract, a congratulations tip closes induction. After that, Jobs is a rotating board of three contracts. Jobs pay from the HUD **Jobs** pip, not Settings. **Replay induction** in Settings repeats the field tips, not the payouts.
+New players get a welcome, then **Jobs**. The first jobs are: test your laser, destroy an asteroid, unload at the refinery, look around, buy an upgrade, buy a drill slot, launch a drill, bounce a wall, mine 5 more rocks, buy a second slot, fly two drills at once. After the last job, a congratulations tip closes the tutorial. After that, Jobs is a rotating board of three jobs. Jobs pay from the HUD **Jobs** pip, not Settings. **Replay tips** in Settings repeats the field tips, not the payouts.
 
 A new player does not need this file. With the sheet collapsed, tips sit under the claim. With Upgrades open they overlay the field so the claim stays large.
 
-The claim is a square from **Claim Size**, not the screen. Drag to pan, pinch or scroll to zoom, and double-tap the field to re-centre.
+The field is a square from **Bigger Field**, not the screen. Drag to pan, pinch or scroll to zoom, and double-tap the field to re-centre.
 
-HUD left to right: Jobs, sector, cash with $/s under it, 2x, settings. Peek bar: Buy Drill (live count · cost), cheapest upgrade, Upgrades.
+HUD left to right: Jobs, sector, cash with $/s under it, 2x, settings. Bottom bar: Buy Drill (live count · cost), cheapest upgrade, Upgrades.
 
 ## Tuning
 

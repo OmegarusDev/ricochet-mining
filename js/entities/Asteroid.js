@@ -1,4 +1,5 @@
 import { Vector2D } from '../engine/Vector2D.js';
+import { rockBite } from '../sim/Tuning.js?v=50';
 import { pickAsteroidTier } from '../ui/Upgrades.js';
 
 function randRange(min, max) {
@@ -164,7 +165,7 @@ function buildSpalls(vertices, rng) {
 let nextAsteroidId = 1;
 
 export class Asteroid {
-  constructor({ pos, tier, hpMult = 1, driftSpeed = 0 }) {
+  constructor({ pos, tier, hpMult = 1, driftSpeed = 0, incomeMult = 1 }) {
     this.id = nextAsteroidId++;
     this.pos = pos;
     this.tier = tier;
@@ -174,6 +175,7 @@ export class Asteroid {
     this.shadeColor = darkenHex(tier.color, 0.45);
     this.maxHp = tier.baseHp * hpMult;
     this.hp = this.maxHp;
+    this.bite = rockBite(tier.baseHp, incomeMult);
     this.yieldCount = tier.yield;
     this.unitValue = tier.unitValue;
     this.rotation = randRange(0, Math.PI * 2);
@@ -209,7 +211,15 @@ export class Asteroid {
     return verts;
   }
 
-  static spawn(playfield, sectorLevel, hpMult, existing = [], rareBias = 0, driftSpeed = 0) {
+  static spawn(
+    playfield,
+    sectorLevel,
+    hpMult,
+    existing = [],
+    rareBias = 0,
+    driftSpeed = 0,
+    incomeMult = 1
+  ) {
     const tier = pickAsteroidTier(sectorLevel, rareBias);
     const margin = tier.radius + 8;
     let pos = null;
@@ -229,7 +239,7 @@ export class Asteroid {
     if (!pos) {
       pos = new Vector2D(playfield.width * 0.5, playfield.height * 0.35);
     }
-    return new Asteroid({ pos, tier, hpMult, driftSpeed });
+    return new Asteroid({ pos, tier, hpMult, driftSpeed, incomeMult });
   }
 
   noteHit() {

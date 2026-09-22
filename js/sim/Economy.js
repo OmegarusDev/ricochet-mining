@@ -11,7 +11,7 @@ import {
   zeroUpgrades,
   applyTuningToUpgrades
 } from '../ui/Upgrades.js';
-import { TUNING, hpMult } from './Tuning.js';
+import { TUNING, hpMult, rockBite } from './Tuning.js?v=50';
 
 export function geometricSum(base, scale, levels) {
   if (levels <= 0) {
@@ -40,6 +40,7 @@ export function beltMean(sectorLevel, rareBias = 0) {
   let value = 0;
   let yieldCount = 0;
   let radius = 0;
+  let bite = 0;
   for (let i = 0; i < sector.tiers.length; i++) {
     const w = weights[i] / sum;
     const tier = ASTEROID_TIERS[sector.tiers[i].id];
@@ -47,8 +48,9 @@ export function beltMean(sectorLevel, rareBias = 0) {
     value += w * tier.unitValue * sector.incomeMult;
     yieldCount += w * tier.yield;
     radius += w * tier.radius;
+    bite += w * rockBite(tier.baseHp, sector.incomeMult);
   }
-  return { hp, value, yieldCount, radius, hpScale, incomeMult: sector.incomeMult };
+  return { hp, value, yieldCount, radius, bite, hpScale, incomeMult: sector.incomeMult };
 }
 
 function critExpect(chance, mult) {
@@ -122,7 +124,10 @@ export function snapshot(upgrades, sectorLevel, event = null, opts = {}) {
     maxAsteroids: d.maxAsteroids,
     spawnDelay: d.asteroidSpawnDelay,
     tapInterval: d.tapInterval,
-    tradesUntilDeath: d.droneDamage > 0 ? d.droneMaxHp / Math.max(1, d.droneDamage * (d.recoilFrac || 1)) : Infinity
+    tradesUntilDeath:
+      d.droneDamage > 0
+        ? d.droneMaxHp / Math.max(1, (belt.bite || d.droneDamage) * (d.recoilFrac || 1))
+        : Infinity
   };
 }
 
@@ -135,7 +140,7 @@ function bestBuy(upgrades, sectorLevel, credits, tapping) {
   let best = null;
   for (const def of UPGRADE_DEFS) {
     const level = upgrades[def.id] || 0;
-    if (level >= def.maxLevel || !isUnlocked(def, upgrades)) {
+    if (def.hidden || level >= def.maxLevel || !isUnlocked(def, upgrades)) {
       continue;
     }
     if (def.id === 'asteroid_max' && def.effect(level) >= TUNING.fieldCap) {
@@ -248,7 +253,7 @@ export function simulateGreedy({
 
 export function catalogCosts() {
   applyTuningToUpgrades();
-  const rows = UPGRADE_DEFS.map((def) => ({
+  const rows = UPGRADE_DEFS.filter((def) => !def.hidden).map((def) => ({
     id: def.id,
     name: def.name,
     tab: def.tab,

@@ -1,5 +1,5 @@
 import { Vector2D } from '../engine/Vector2D.js';
-import { TUNING } from '../sim/Tuning.js';
+import { TUNING } from '../sim/Tuning.js?v=50';
 
 const CHIP_POOL = [];
 
